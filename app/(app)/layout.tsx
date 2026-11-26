@@ -4,9 +4,9 @@ import { unreadCount } from "@/lib/queries";
 import { ensureSeed } from "@/lib/seed";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  ensureSeed();
+  await ensureSeed();
   const user = await requireUser();
-  const unread = user.clinicId ? unreadCount(user.clinicId) : 0;
+  const unread = user.clinicId ? await unreadCount(user.clinicId) : 0;
 
   return (
     <AppShell

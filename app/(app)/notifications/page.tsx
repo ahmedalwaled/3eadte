@@ -14,7 +14,7 @@ const KIND_STYLE: Record<string, string> = {
 
 export default async function NotificationsPage() {
   const user = await requireClinicUser();
-  const items = notificationsFor(user.clinicId, 50);
+  const items = await notificationsFor(user.clinicId, 50);
   const unread = items.filter((item) => !item.is_read).length;
 
   return (

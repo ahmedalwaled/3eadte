@@ -24,8 +24,8 @@ export async function GET(request: Request) {
   const from = /^\d{4}-\d{2}-\d{2}$/.test(params.get("from") ?? "") ? (params.get("from") as string) : fallback.from;
   const to = /^\d{4}-\d{2}-\d{2}$/.test(params.get("to") ?? "") ? (params.get("to") as string) : fallback.to;
 
-  const appointments = appointmentsInRange(user.clinicId, from, to);
-  const visits = all<{
+  const appointments = await appointmentsInRange(user.clinicId, from, to);
+  const visits = await all<{
     id: string;
     patient_name: string;
     visit_date: string;

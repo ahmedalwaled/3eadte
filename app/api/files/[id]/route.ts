@@ -9,7 +9,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!user?.clinicId) return new NextResponse("غير مصرح", { status: 401 });
 
   const { id } = await params;
-  const row = get<{ stored_name: string; original_name: string; mime: string }>(
+  const row = await get<{ stored_name: string; original_name: string; mime: string }>(
     "SELECT stored_name, original_name, mime FROM attachments WHERE id = ? AND clinic_id = ?",
     [id, user.clinicId],
   );

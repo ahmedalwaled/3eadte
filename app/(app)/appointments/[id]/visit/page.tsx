@@ -8,12 +8,12 @@ import { PageHeader } from "@/components/ui";
 export default async function AppointmentVisitPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireClinicUser(["doctor"]);
   const { id } = await params;
-  const appointment = appointmentById(user.clinicId, id);
+  const appointment = await appointmentById(user.clinicId, id);
   if (!appointment) notFound();
   if (appointment.status === "cancelled") redirect("/appointments");
   if (appointment.visit_id) redirect(`/visits/${appointment.visit_id}`);
 
-  const patient = patientById(user.clinicId, appointment.patient_id);
+  const patient = await patientById(user.clinicId, appointment.patient_id);
   if (!patient) notFound();
 
   return (

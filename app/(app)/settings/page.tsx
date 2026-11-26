@@ -11,11 +11,11 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const user = await requireClinicUser(["doctor"]);
-  const clinic = get<{ name: string; phone: string; address: string; currency: string }>(
+  const clinic = await get<{ name: string; phone: string; address: string; currency: string }>(
     "SELECT name, phone, address, currency FROM clinics WHERE id = ?",
     [user.clinicId],
   );
-  const staff = all<{ id: string; name: string; email: string; role: string; specialty: string; active: number; denied_perms: string; created_at: string }>(
+  const staff = await all<{ id: string; name: string; email: string; role: string; specialty: string; active: number; denied_perms: string; created_at: string }>(
     "SELECT id, name, email, role, specialty, active, denied_perms, created_at FROM users WHERE clinic_id = ? ORDER BY role, name",
     [user.clinicId],
   );
@@ -37,7 +37,7 @@ export default async function SettingsPage() {
         </section>
 
         <div className="lg:col-span-2">
-          <CurrencySettings base={clinic?.currency ?? user.currency} currencies={clinicCurrencies(user.clinicId)} />
+          <CurrencySettings base={clinic?.currency ?? user.currency} currencies={await clinicCurrencies(user.clinicId)} />
         </div>
 
         <section className="card card-pad lg:col-span-2">

@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   if (!user?.clinicId) return new Response("غير مصرح", { status: 401 });
 
   const q = new URL(request.url).searchParams.get("q") ?? "";
-  const patients = patientList(user.clinicId, q, 5000);
+  const patients = await patientList(user.clinicId, q, 5000);
 
   const body = toCsv(
     ["رقم الملف", "الاسم", "الجوال", "الجنس", "تاريخ الميلاد", "العمر", "العنوان", "عدد الزيارات", "آخر زيارة", "الرصيد"],

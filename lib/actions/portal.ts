@@ -14,7 +14,7 @@ export async function verifyPortal(_prev: PortalState | null, formData: FormData
   if (!token) return { error: "رابط غير صالح" };
   if (phone.length < 6) return { error: "أدخل رقم الجوال المسجل في العيادة" };
 
-  const patient = get<{ id: string; phone: string }>("SELECT id, phone FROM patients WHERE portal_token = ?", [token]);
+  const patient = await get<{ id: string; phone: string }>("SELECT id, phone FROM patients WHERE portal_token = ?", [token]);
   if (!patient) return { error: "الرابط غير صحيح أو تم إيقافه" };
 
   const registered = String(patient.phone ?? "").replace(/\D/g, "");
@@ -26,7 +26,7 @@ export async function verifyPortal(_prev: PortalState | null, formData: FormData
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: false,
     maxAge: 60 * 60 * 12,
   });
   revalidatePath(`/portal/${token}`);

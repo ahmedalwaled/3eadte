@@ -26,7 +26,7 @@ const ACTION_LABEL: Record<string, string> = {
 
 export default async function AuditPage() {
   const user = await requireClinicUser(["doctor"]);
-  const logs = all<{ id: string; user_name: string; action: string; details: string; created_at: string }>(
+  const logs = await all<{ id: string; user_name: string; action: string; details: string; created_at: string }>(
     "SELECT id, user_name, action, details, created_at FROM audit_logs WHERE clinic_id = ? ORDER BY created_at DESC LIMIT 200",
     [user.clinicId],
   );

@@ -15,7 +15,7 @@ export async function updateClinic(_prev: ActionResult | null, formData: FormDat
   const currency = String(formData.get("currency") ?? "SAR").trim().toUpperCase().slice(0, 3);
   if (name.length < 2) return { error: "أدخل اسم العيادة" };
 
-  run("UPDATE clinics SET name = ?, phone = ?, address = ?, currency = ? WHERE id = ?", [name, phone, address, currency, user.clinicId]);
+  await run("UPDATE clinics SET name = ?, phone = ?, address = ?, currency = ? WHERE id = ?", [name, phone, address, currency, user.clinicId]);
   revalidatePath("/settings");
   revalidatePath("/dashboard");
   return { ok: true };
@@ -34,10 +34,10 @@ export async function addStaff(_prev: ActionResult | null, formData: FormData): 
   if (password.length < 6) return { error: "كلمة المرور 6 أحرف على الأقل" };
   if (!["doctor", "secretary"].includes(role)) return { error: "صلاحية غير صالحة" };
 
-  const existing = get<{ id: string }>("SELECT id FROM users WHERE lower(email) = ?", [email]);
+  const existing = await get<{ id: string }>("SELECT id FROM users WHERE lower(email) = ?", [email]);
   if (existing) return { error: "البريد مستخدم مسبقاً" };
 
-  run("INSERT INTO users (id, clinic_id, name, email, password_hash, role, specialty, created_at) VALUES (?,?,?,?,?,?,?,?)", [
+  await run("INSERT INTO users (id, clinic_id, name, email, password_hash, role, specialty, created_at) VALUES (?,?,?,?,?,?,?,?)", [
     newId(),
     user.clinicId,
     name,
@@ -54,13 +54,13 @@ export async function addStaff(_prev: ActionResult | null, formData: FormData): 
 export async function toggleStaff(formData: FormData) {
   const user = await requireClinicUser(["doctor"]);
   const id = String(formData.get("id") ?? "");
-  const staff = get<{ id: string; role: string; active: number }>("SELECT id, role, active FROM users WHERE id = ? AND clinic_id = ?", [
+  const staff = await get<{ id: string; role: string; active: number }>("SELECT id, role, active FROM users WHERE id = ? AND clinic_id = ?", [
     id,
     user.clinicId,
   ]);
   if (!staff || staff.id === user.id) return;
-  run("UPDATE users SET active = ? WHERE id = ? AND clinic_id = ?", [staff.active ? 0 : 1, id, user.clinicId]);
-  logAudit({ clinicId: user.clinicId, userId: user.id, userName: user.name, action: staff.active ? "staff.deactivate" : "staff.activate", entity: "user", entityId: id, details: staff.role });
+  await run("UPDATE users SET active = ? WHERE id = ? AND clinic_id = ?", [staff.active ? 0 : 1, id, user.clinicId]);
+  await logAudit({ clinicId: user.clinicId, userId: user.id, userName: user.name, action: staff.active ? "staff.deactivate" : "staff.activate", entity: "user", entityId: id, details: staff.role });
   revalidatePath("/settings");
 }
 
@@ -71,7 +71,7 @@ export async function togglePerm(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const perm = String(formData.get("perm") ?? "");
   if (!SECRETARY_PERMS.includes(perm as (typeof SECRETARY_PERMS)[number])) return;
-  const staff = get<{ id: string; role: string; denied_perms: string }>("SELECT id, role, denied_perms FROM users WHERE id = ? AND clinic_id = ?", [
+  const staff = await get<{ id: string; role: string; denied_perms: string }>("SELECT id, role, denied_perms FROM users WHERE id = ? AND clinic_id = ?", [
     id,
     doctor.clinicId,
   ]);
@@ -79,8 +79,8 @@ export async function togglePerm(formData: FormData) {
   const denied = new Set(staff.denied_perms.split(",").filter(Boolean));
   if (denied.has(perm)) denied.delete(perm);
   else denied.add(perm);
-  run("UPDATE users SET denied_perms = ? WHERE id = ? AND clinic_id = ?", [[...denied].join(","), id, doctor.clinicId]);
-  logAudit({ clinicId: doctor.clinicId, userId: doctor.id, userName: doctor.name, action: "staff.perm", entity: "user", entityId: id, details: `${perm}:${!denied.has(perm) ? "منح" : "سحب"}` });
+  await run("UPDATE users SET denied_perms = ? WHERE id = ? AND clinic_id = ?", [[...denied].join(","), id, doctor.clinicId]);
+  await logAudit({ clinicId: doctor.clinicId, userId: doctor.id, userName: doctor.name, action: "staff.perm", entity: "user", entityId: id, details: `${perm}:${!denied.has(perm) ? "منح" : "سحب"}` });
   revalidatePath("/settings");
 }
 
@@ -94,7 +94,7 @@ export async function addCurrency(_prev: ActionResult | null, formData: FormData
   if (!Number.isFinite(rate) || rate <= 0) return { error: "أدخل سعر صرف أكبر من صفر" };
   if (rate > 100_000) return { error: "سعر الصرف أكبر من الحد المسموح" };
 
-  run(
+  await run(
     "INSERT INTO clinic_currencies (clinic_id, code, rate, created_at) VALUES (?,?,?,?) ON CONFLICT(clinic_id, code) DO UPDATE SET rate = excluded.rate",
     [user.clinicId, code, rate, nowIso()],
   );
@@ -107,7 +107,7 @@ export async function addCurrency(_prev: ActionResult | null, formData: FormData
 export async function deleteCurrency(formData: FormData) {
   const user = await requireClinicUser(["doctor"]);
   const code = String(formData.get("code") ?? "").trim().toUpperCase();
-  run("DELETE FROM clinic_currencies WHERE clinic_id = ? AND code = ?", [user.clinicId, code]);
+  await run("DELETE FROM clinic_currencies WHERE clinic_id = ? AND code = ?", [user.clinicId, code]);
   revalidatePath("/settings");
   revalidatePath("/finance");
   revalidatePath("/reports");

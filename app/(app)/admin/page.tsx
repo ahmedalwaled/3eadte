@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   await requireAdmin();
 
-  const clinics = all<{
+  const clinics = await all<{
     id: string;
     name: string;
     phone: string;
@@ -31,7 +31,7 @@ export default async function AdminPage() {
        FROM clinics c ORDER BY c.created_at DESC`,
   );
 
-  const totals = get<{ patients: number; visits: number; revenue: number }>(
+  const totals = await get<{ patients: number; visits: number; revenue: number }>(
     `SELECT (SELECT COUNT(*) FROM patients) AS patients,
             (SELECT COUNT(*) FROM visits) AS visits,
             (SELECT COALESCE(SUM(amount), 0) FROM payments) AS revenue`,

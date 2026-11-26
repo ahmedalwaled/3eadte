@@ -19,17 +19,17 @@ type Item = { drug: string; dose: string; frequency: string; duration: string };
 export default async function VisitPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireClinicUser();
   const { id } = await params;
-  const visit = visitById(user.clinicId, id);
+  const visit = await visitById(user.clinicId, id);
   if (!visit) notFound();
 
-  const patient = patientById(user.clinicId, visit.patient_id);
+  const patient = await patientById(user.clinicId, visit.patient_id);
   if (!patient) notFound();
 
-  const prescriptions = all<PrescriptionRow>(
+  const prescriptions = await all<PrescriptionRow>(
     "SELECT id, items, instructions, created_at FROM prescriptions WHERE clinic_id = ? AND visit_id = ? ORDER BY created_at DESC",
     [user.clinicId, id],
   );
-  const balance = patientBalance(user.clinicId, patient.id);
+  const balance = await patientBalance(user.clinicId, patient.id);
   const isDoctor = user.role === "doctor";
 
   return (

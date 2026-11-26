@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/ui";
 export default async function NewVisitPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireClinicUser(["doctor"]);
   const { id } = await params;
-  const patient = patientById(user.clinicId, id);
+  const patient = await patientById(user.clinicId, id);
   if (!patient) notFound();
   if (user.role !== "doctor") redirect(`/patients/${id}`);
 

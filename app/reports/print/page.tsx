@@ -37,44 +37,46 @@ export default async function PrintableReportPage({ searchParams }: { searchPara
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? "") ? (sp.month as string) : todayISO().slice(0, 7);
   const { from, to } = monthRange(month);
 
-  const clinic = get<{ name: string; phone: string; address: string; currency: string }>(
+  const clinic = await get<{ name: string; phone: string; address: string; currency: string }>(
     "SELECT name, phone, address, currency FROM clinics WHERE id = ?",
     [user.clinicId],
   );
-  const totals = totalsInRange(user.clinicId, from, to);
-  const balances = clinicBalances(user.clinicId);
-  const appointments = appointmentsInRange(user.clinicId, from, to);
-  const currencies = clinicCurrencies(user.clinicId);
-  const byCurrency = paymentsByCurrency(user.clinicId, user.currency, from, to);
+  const totals = await totalsInRange(user.clinicId, from, to);
+  const balances = await clinicBalances(user.clinicId);
+  const appointments = await appointmentsInRange(user.clinicId, from, to);
+  const currencies = await clinicCurrencies(user.clinicId);
+  const byCurrency = await paymentsByCurrency(user.clinicId, user.currency, from, to);
 
-  const revenueByMonth = all<{ month: string; total: number }>(
+  const revenueByMonth = await all<{ month: string; total: number }>(
     `SELECT substr(paid_at, 1, 7) AS month, COALESCE(SUM(amount * COALESCE(rate, 1)), 0) AS total
        FROM payments WHERE clinic_id = ? GROUP BY month ORDER BY month DESC LIMIT 6`,
     [user.clinicId],
-  ).reverse();
+  );
+  revenueByMonth.reverse();
 
-  const statusCounts = all<{ status: string; n: number }>(
+  const statusCounts = await all<{ status: string; n: number }>(
     `SELECT status, COUNT(*) AS n FROM appointments
       WHERE clinic_id = ? AND substr(starts_at, 1, 10) BETWEEN ? AND ? GROUP BY status ORDER BY n DESC`,
     [user.clinicId, from, to],
   );
 
   const newPatients = Number(
-    all<{ n: number }>("SELECT COUNT(*) AS n FROM patients WHERE clinic_id = ? AND substr(created_at, 1, 10) BETWEEN ? AND ?", [
+    (
+      await all<{ n: number }>("SELECT COUNT(*) AS n FROM patients WHERE clinic_id = ? AND substr(created_at, 1, 10) BETWEEN ? AND ?", [
       user.clinicId,
       from,
       to,
-    ])[0]?.n ?? 0,
+      ])
+    )[0]?.n ?? 0,
   );
-
-  const topDiagnoses = all<{ diagnosis: string; n: number }>(
+  const topDiagnoses = await all<{ diagnosis: string; n: number }>(
     `SELECT diagnosis, COUNT(*) AS n FROM visits
       WHERE clinic_id = ? AND substr(visit_date, 1, 10) BETWEEN ? AND ? AND diagnosis <> ''
       GROUP BY diagnosis ORDER BY n DESC LIMIT 8`,
     [user.clinicId, from, to],
   );
 
-  const receivables = all<{ id: string; name: string; balance: number }>(
+  const receivables = await all<{ id: string; name: string; balance: number }>(
     `SELECT * FROM (
         SELECT p.id, p.name,
                COALESCE((SELECT SUM(v.fee - v.discount) FROM visits v WHERE v.patient_id = p.id), 0)
@@ -84,7 +86,7 @@ export default async function PrintableReportPage({ searchParams }: { searchPara
     [user.clinicId],
   );
 
-  const expenses = all<{ title: string; amount: number; category: string }>(
+  const expenses = await all<{ title: string; amount: number; category: string }>(
     `SELECT title, COALESCE(amount * COALESCE(rate, 1), 0) AS amount, category FROM expenses
       WHERE clinic_id = ? AND substr(spent_at, 1, 10) BETWEEN ? AND ? ORDER BY amount DESC LIMIT 10`,
     [user.clinicId, from, to],

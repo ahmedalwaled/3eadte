@@ -8,14 +8,14 @@ import { cookies } from "next/headers";
 export async function GET(_request: Request, { params }: { params: Promise<{ token: string; id: string }> }) {
   const { token, id } = await params;
 
-  const patient = get<{ id: string }>("SELECT id FROM patients WHERE portal_token = ?", [token]);
+  const patient = await get<{ id: string }>("SELECT id FROM patients WHERE portal_token = ?", [token]);
   if (!patient) return new NextResponse("الملف غير موجود", { status: 404 });
 
   const store = await cookies();
   const verified = store.get(portalCookieName(token))?.value === portalCookieValue(patient.id, token);
   if (!verified) return new NextResponse("غير مصرح", { status: 401 });
 
-  const row = get<{ stored_name: string; original_name: string; mime: string }>(
+  const row = await get<{ stored_name: string; original_name: string; mime: string }>(
     "SELECT stored_name, original_name, mime FROM attachments WHERE id = ? AND patient_id = ? AND share_with_portal = 1",
     [id, patient.id],
   );

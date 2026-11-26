@@ -30,13 +30,13 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? "") ? (sp.month as string) : todayISO().slice(0, 7);
   const { from, to } = monthRange(month);
 
-  const payments = paymentsInRange(user.clinicId, from, to);
-  const expenses = expensesInRange(user.clinicId, from, to);
-  const totals = totalsInRange(user.clinicId, from, to);
-  const balances = clinicBalances(user.clinicId);
-  const currencies = clinicCurrencies(user.clinicId);
-  const byCurrency = paymentsByCurrency(user.clinicId, user.currency, from, to);
-  const patients = all<{ id: string; name: string }>(
+  const payments = await paymentsInRange(user.clinicId, from, to);
+  const expenses = await expensesInRange(user.clinicId, from, to);
+  const totals = await totalsInRange(user.clinicId, from, to);
+  const balances = await clinicBalances(user.clinicId);
+  const currencies = await clinicCurrencies(user.clinicId);
+  const byCurrency = await paymentsByCurrency(user.clinicId, user.currency, from, to);
+  const patients = await all<{ id: string; name: string }>(
     "SELECT id, name FROM patients WHERE clinic_id = ? ORDER BY name LIMIT 500",
     [user.clinicId],
   );

@@ -2,7 +2,7 @@ import "server-only";
 import { run, newId, nowIso } from "./db";
 
 /** Append an audit trail entry; failures must never break the user's action. */
-export function logAudit(input: {
+export async function logAudit(input: {
   clinicId?: string | null;
   userId?: string | null;
   userName?: string | null;
@@ -12,7 +12,7 @@ export function logAudit(input: {
   details?: string;
 }) {
   try {
-    run(
+    await run(
       "INSERT INTO audit_logs (id, clinic_id, user_id, user_name, action, entity, entity_id, details, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
       [
         newId(),

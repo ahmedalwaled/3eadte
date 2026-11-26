@@ -17,9 +17,9 @@ const NEXT_ACTION: Record<string, { label: string; status: string } | undefined>
 export default async function DashboardPage() {
   const user = await requireClinicUser();
   const date = todayISO();
-  const stats = dashboardStats(user.clinicId, date);
-  const revenue = revenueLastDays(user.clinicId, 7);
-  const alerts = notificationsFor(user.clinicId, 4);
+  const stats = await dashboardStats(user.clinicId, date);
+  const revenue = await revenueLastDays(user.clinicId, 7);
+  const alerts = await notificationsFor(user.clinicId, 4);
   const maxRevenue = Math.max(1, ...revenue.map((r) => Number(r.total)));
 
   const waiting = (stats.counts.waiting ?? 0) + (stats.counts.arrived ?? 0);

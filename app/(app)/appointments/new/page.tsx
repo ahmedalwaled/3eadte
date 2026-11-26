@@ -13,11 +13,11 @@ export default async function NewAppointmentPage({
   const user = await requireClinicUser();
   const sp = await searchParams;
 
-  const patients = all<{ id: string; name: string; code: string; phone: string }>(
+  const patients = await all<{ id: string; name: string; code: string; phone: string }>(
     "SELECT id, name, code, phone FROM patients WHERE clinic_id = ? ORDER BY name LIMIT 500",
     [user.clinicId],
   );
-  const doctors = doctorsFor(user.clinicId);
+  const doctors = await doctorsFor(user.clinicId);
 
   return (
     <div className="mx-auto max-w-3xl">

@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const from = /^\d{4}-\d{2}-\d{2}$/.test(params.get("from") ?? "") ? (params.get("from") as string) : fallback.from;
   const to = /^\d{4}-\d{2}-\d{2}$/.test(params.get("to") ?? "") ? (params.get("to") as string) : fallback.to;
 
-  const payments = paymentsInRange(user.clinicId, from, to);
+  const payments = await paymentsInRange(user.clinicId, from, to);
   const total = payments.reduce((sum, payment) => sum + Number(payment.amount) * Number(payment.rate || 1), 0);
 
   const body = toCsv(

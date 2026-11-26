@@ -42,22 +42,22 @@ export default async function PatientPage({
   const { id } = await params;
   const { tab = "overview" } = await searchParams;
 
-  const patient = patientById(user.clinicId, id);
+  const patient = await patientById(user.clinicId, id);
   if (!patient) notFound();
 
-  const visits = visitsForPatient(user.clinicId, id);
-  const prescriptions = prescriptionsForPatient(user.clinicId, id);
-  const payments = paymentsForPatient(user.clinicId, id);
-  const attachments = all<{ id: string; original_name: string; mime: string; size: number; share_with_portal: number; created_at: string }>(
+  const visits = await visitsForPatient(user.clinicId, id);
+  const prescriptions = await prescriptionsForPatient(user.clinicId, id);
+  const payments = await paymentsForPatient(user.clinicId, id);
+  const attachments = await all<{ id: string; original_name: string; mime: string; size: number; share_with_portal: number; created_at: string }>(
     "SELECT id, original_name, mime, size, share_with_portal, created_at FROM attachments WHERE clinic_id = ? AND patient_id = ? ORDER BY created_at DESC",
     [user.clinicId, id],
   );
-  const upcoming = all<{ id: string; starts_at: string; status: string; reason: string }>(
+  const upcoming = await all<{ id: string; starts_at: string; status: string; reason: string }>(
     "SELECT id, starts_at, status, reason FROM appointments WHERE clinic_id = ? AND patient_id = ? AND starts_at >= ? ORDER BY starts_at LIMIT 5",
     [user.clinicId, id, new Date().toISOString().slice(0, 16)],
   );
-  const balance = patientBalance(user.clinicId, id);
-  const currencies = clinicCurrencies(user.clinicId);
+  const balance = await patientBalance(user.clinicId, id);
+  const currencies = await clinicCurrencies(user.clinicId);
   const isDoctor = user.role === "doctor";
 
   return (

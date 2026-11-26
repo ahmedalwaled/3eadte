@@ -38,7 +38,8 @@ export default async function AppointmentsPage({
   const date = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? (sp.date as string) : todayISO();
   const view: View = sp.view === "week" || sp.view === "month" ? sp.view : "day";
 
-  const dayList = appointmentsOnDate(user.clinicId, date);
+  const dayList = await appointmentsOnDate(user.clinicId, date);
+  const weekList = view === "day" ? [] : await appointmentsInRange(user.clinicId, addDays(date, -7), addDays(date, 30));
 
   return (
     <div>
@@ -192,7 +193,7 @@ export default async function AppointmentsPage({
 
 async function WeekView({ clinicId, date, currency }: { clinicId: string; date: string; currency: string }) {
   const start = addDays(date, 0);
-  const rows = appointmentsInRange(clinicId, start, addDays(date, 6));
+  const rows = await appointmentsInRange(clinicId, start, addDays(date, 6));
   const days = Array.from({ length: 7 }, (_, index) => addDays(date, index));
 
   return (
@@ -233,7 +234,7 @@ async function WeekView({ clinicId, date, currency }: { clinicId: string; date: 
 async function MonthView({ clinicId, date }: { clinicId: string; date: string }) {
   const month = date.slice(0, 7);
   const cells = monthGrid(month);
-  const rows = appointmentsInRange(clinicId, `${month}-01`, `${month}-31`);
+  const rows = await appointmentsInRange(clinicId, `${month}-01`, `${month}-31`);
   const counts = new Map<string, { total: number; names: string[] }>();
   rows.forEach((row) => {
     const day = row.starts_at.slice(0, 10);

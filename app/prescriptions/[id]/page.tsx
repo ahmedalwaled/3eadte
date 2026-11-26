@@ -13,13 +13,13 @@ type Item = { drug: string; dose: string; frequency: string; duration: string };
 export default async function PrescriptionPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireClinicUser();
   const { id } = await params;
-  const prescription = prescriptionById(user.clinicId, id);
+  const prescription = await prescriptionById(user.clinicId, id);
   if (!prescription) notFound();
 
-  const patient = patientById(user.clinicId, prescription.patient_id);
+  const patient = await patientById(user.clinicId, prescription.patient_id);
   if (!patient) notFound();
 
-  const clinic = get<{ name: string; phone: string; address: string }>("SELECT name, phone, address FROM clinics WHERE id = ?", [user.clinicId]);
+  const clinic = await get<{ name: string; phone: string; address: string }>("SELECT name, phone, address FROM clinics WHERE id = ?", [user.clinicId]);
 
   let items: Item[] = [];
   try {

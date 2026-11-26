@@ -1,5 +1,5 @@
 import "server-only";
-import { get, run, newId, nowIso, tx } from "./db";
+import { get, newId, nowIso, tx } from "./db";
 import { hashPassword } from "./auth";
 import crypto from "node:crypto";
 
@@ -20,6 +20,8 @@ function at(offsetDays: number, time: string): string {
 const VISIT_SQL =
   "INSERT INTO visits (id, clinic_id, patient_id, appointment_id, doctor_id, visit_date, complaint, vitals, exam, diagnosis, treatment, recommendations, follow_up, fee, discount, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
+type Run = (query: string, params?: unknown[]) => Promise<void>;
+
 type VisitInput = {
   clinicId: string;
   patientId: string;
@@ -37,9 +39,9 @@ type VisitInput = {
   discount: number;
 };
 
-function insertVisit(input: VisitInput): string {
+async function insertVisit(run: Run, input: VisitInput): Promise<string> {
   const id = newId();
-  run(VISIT_SQL, [
+  await run(VISIT_SQL, [
     id,
     input.clinicId,
     input.patientId,
@@ -97,8 +99,20 @@ const PEOPLE: [string, string, string, string, string][] = [
   ["دانة وليد الرشيد", "0550123456", "female", "1999-10-05", "الرياض"],
 ];
 
-export function ensureSeed() {
-  const existing = get<{ n: number }>("SELECT COUNT(*) AS n FROM clinics");
+let seeding: Promise<void> | null = null;
+
+export function ensureSeed(): Promise<void> {
+  if (!seeding) {
+    seeding = seed().catch((error) => {
+      seeding = null;
+      throw error;
+    });
+  }
+  return seeding;
+}
+
+async function seed() {
+  const existing = await get<{ n: number }>("SELECT COUNT(*) AS n FROM clinics");
   if (existing && Number(existing.n) > 0) return;
 
   const created = nowIso();
@@ -107,21 +121,21 @@ export function ensureSeed() {
   const doctorA = newId();
   const secretaryA = newId();
 
-  tx(() => {
-    run(CLINIC_SQL, [clinicA, "عيادة النور الطبية", "0112345678", "الرياض - حي الملقا", "SAR", created]);
-    run(CLINIC_SQL, [clinicB, "مركز الشفاء التخصصي", "0119876543", "جدة - حي الروضة", "SAR", created]);
+  await tx(async ({ run }) => {
+    await run(CLINIC_SQL, [clinicA, "عيادة النور الطبية", "0112345678", "الرياض - حي الملقا", "SAR", created]);
+    await run(CLINIC_SQL, [clinicB, "مركز الشفاء التخصصي", "0119876543", "جدة - حي الروضة", "SAR", created]);
 
-    run(USER_SQL, [newId(), null, "مدير المنصة", "admin@platform.demo", hashPassword("admin123"), "platform_admin", "", created]);
-    run(USER_SQL, [doctorA, clinicA, "د. سارة العتيبي", "doctor@clinic.demo", hashPassword("doctor123"), "doctor", "طب الأسرة", created]);
-    run(USER_SQL, [secretaryA, clinicA, "منى الحربي", "secretary@clinic.demo", hashPassword("secret123"), "secretary", "", created]);
-    run(USER_SQL, [newId(), clinicB, "د. خالد الشمري", "doctor@shifa.demo", hashPassword("doctor123"), "doctor", "طب الأطفال", created]);
+    await run(USER_SQL, [newId(), null, "مدير المنصة", "admin@platform.demo", hashPassword("admin123"), "platform_admin", "", created]);
+    await run(USER_SQL, [doctorA, clinicA, "د. سارة العتيبي", "doctor@clinic.demo", hashPassword("doctor123"), "doctor", "طب الأسرة", created]);
+    await run(USER_SQL, [secretaryA, clinicA, "منى الحربي", "secretary@clinic.demo", hashPassword("secret123"), "secretary", "", created]);
+    await run(USER_SQL, [newId(), clinicB, "د. خالد الشمري", "doctor@shifa.demo", hashPassword("doctor123"), "doctor", "طب الأطفال", created]);
 
     const patientIds: string[] = [];
-    PEOPLE.forEach((person, index) => {
+    for (const [index, person] of PEOPLE.entries()) {
       const id = newId();
       patientIds.push(id);
       const code = `P-${String(index + 1).padStart(4, "0")}`;
-      run(PATIENT_SQL, [
+      await run(PATIENT_SQL, [
         id,
         clinicA,
         code,
@@ -134,31 +148,31 @@ export function ensureSeed() {
         crypto.randomBytes(9).toString("base64url"),
         created,
       ]);
-    });
+    }
 
-    const addAppt = (patientIdx: number, day: number, time: string, status: string, reason: string) => {
+    const addAppt = async (patientIdx: number, day: number, time: string, status: string, reason: string) => {
       const id = newId();
-      run(APPT_SQL, [id, clinicA, patientIds[patientIdx], doctorA, at(day, time), 20, reason, status, created]);
+      await run(APPT_SQL, [id, clinicA, patientIds[patientIdx], doctorA, at(day, time), 20, reason, status, created]);
       return id;
     };
 
-    const today1 = addAppt(0, 0, "09:00", "done", "متابعة ضغط الدم");
-    const today2 = addAppt(1, 0, "09:30", "done", "صداع متكرر");
-    addAppt(2, 0, "10:00", "in_visit", "ألم أسفل الظهر");
-    addAppt(3, 0, "10:30", "waiting", "التهاب الحلق");
-    addAppt(4, 0, "11:00", "arrived", "متابعة سكري");
-    addAppt(5, 0, "11:30", "booked", "سعال وحرارة");
-    addAppt(6, 0, "12:00", "booked", "فحص دوري");
-    addAppt(7, 0, "16:00", "booked", "حساسية جلدية");
-    addAppt(8, -1, "09:00", "no_show", "مراجعة نتائج تحاليل");
-    addAppt(9, -1, "10:00", "done", "التهاب أذن");
-    addAppt(0, -1, "11:00", "cancelled", "استشارة تغذية");
-    addAppt(1, 1, "09:00", "booked", "متابعة صداع");
-    addAppt(3, 1, "09:30", "booked", "مراجعة نتائج");
-    addAppt(5, 2, "10:00", "booked", "تطعيم");
-    addAppt(2, 3, "17:00", "booked", "جلسة علاج طبيعي");
+    const today1 = await addAppt(0, 0, "09:00", "done", "متابعة ضغط الدم");
+    const today2 = await addAppt(1, 0, "09:30", "done", "صداع متكرر");
+    await addAppt(2, 0, "10:00", "in_visit", "ألم أسفل الظهر");
+    await addAppt(3, 0, "10:30", "waiting", "التهاب الحلق");
+    await addAppt(4, 0, "11:00", "arrived", "متابعة سكري");
+    await addAppt(5, 0, "11:30", "booked", "سعال وحرارة");
+    await addAppt(6, 0, "12:00", "booked", "فحص دوري");
+    await addAppt(7, 0, "16:00", "booked", "حساسية جلدية");
+    await addAppt(8, -1, "09:00", "no_show", "مراجعة نتائج تحاليل");
+    await addAppt(9, -1, "10:00", "done", "التهاب أذن");
+    await addAppt(0, -1, "11:00", "cancelled", "استشارة تغذية");
+    await addAppt(1, 1, "09:00", "booked", "متابعة صداع");
+    await addAppt(3, 1, "09:30", "booked", "مراجعة نتائج");
+    await addAppt(5, 2, "10:00", "booked", "تطعيم");
+    await addAppt(2, 3, "17:00", "booked", "جلسة علاج طبيعي");
 
-    const pastVisit = insertVisit({
+    const pastVisit = await insertVisit(run, {
       clinicId: clinicA,
       patientId: patientIds[9],
       appointmentId: null,
@@ -174,7 +188,7 @@ export function ensureSeed() {
       fee: 150,
       discount: 0,
     });
-    run(PRESCRIPTION_SQL, [
+    await run(PRESCRIPTION_SQL, [
       newId(),
       clinicA,
       patientIds[9],
@@ -187,9 +201,9 @@ export function ensureSeed() {
       "يؤخذ الدواء بعد الأكل والإكمال الكامل للمضاد الحيوي ضروري.",
       created,
     ]);
-    run(PAYMENT_SQL, [newId(), clinicA, patientIds[9], pastVisit, 100, "cash", "دفعة أولى", at(-1, "10:40"), secretaryA, created]);
+    await run(PAYMENT_SQL, [newId(), clinicA, patientIds[9], pastVisit, 100, "cash", "دفعة أولى", at(-1, "10:40"), secretaryA, created]);
 
-    const visitA = insertVisit({
+    const visitA = await insertVisit(run, {
       clinicId: clinicA,
       patientId: patientIds[0],
       appointmentId: today1,
@@ -205,9 +219,9 @@ export function ensureSeed() {
       fee: 150,
       discount: 25,
     });
-    run(PAYMENT_SQL, [newId(), clinicA, patientIds[0], visitA, 125, "card", "كشف كامل", at(0, "09:20"), secretaryA, created]);
+    await run(PAYMENT_SQL, [newId(), clinicA, patientIds[0], visitA, 125, "card", "كشف كامل", at(0, "09:20"), secretaryA, created]);
 
-    insertVisit({
+    await insertVisit(run, {
       clinicId: clinicA,
       patientId: patientIds[1],
       appointmentId: today2,
@@ -223,10 +237,10 @@ export function ensureSeed() {
       fee: 150,
       discount: 0,
     });
-    run(PAYMENT_SQL, [newId(), clinicA, patientIds[1], null, 50, "cash", "دفعة جزئية", at(0, "09:50"), secretaryA, created]);
+    await run(PAYMENT_SQL, [newId(), clinicA, patientIds[1], null, 50, "cash", "دفعة جزئية", at(0, "09:50"), secretaryA, created]);
 
-    run("INSERT INTO clinic_currencies (clinic_id, code, rate, created_at) VALUES (?,?,?,?)", [clinicA, "USD", 3.75, created]);
-    run(
+    await run("INSERT INTO clinic_currencies (clinic_id, code, rate, created_at) VALUES (?,?,?,?)", [clinicA, "USD", 3.75, created]);
+    await run(
       "INSERT INTO payments (id, clinic_id, patient_id, visit_id, amount, currency, rate, method, note, paid_at, created_by, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
       [newId(), clinicA, patientIds[1], null, 20, "USD", 3.75, "transfer", "دفعة بالدولار", at(-2, "11:10"), secretaryA, created],
     );
@@ -237,11 +251,11 @@ export function ensureSeed() {
       ["فاتورة الكهرباء", 420, "utilities", at(-5, "09:00")],
       ["صيانة أجهزة", 300, "maintenance", at(-8, "14:00")],
     ];
-    expenses.forEach((item) => {
-      run(EXPENSE_SQL, [newId(), clinicA, item[0], item[1], item[2], item[3], doctorA, created]);
-    });
+    for (const item of expenses) {
+      await run(EXPENSE_SQL, [newId(), clinicA, item[0], item[1], item[2], item[3], doctorA, created]);
+    }
 
-    run(NOTIFICATION_SQL, [newId(), clinicA, null, "موعد جديد", "تم حجز موعد لمريض جديد اليوم الساعة 16:00", "appointment", created]);
-    run(NOTIFICATION_SQL, [newId(), clinicA, null, "مريض لم يحضر", "لم يحضر المريض ماجد سالم القرني لموعده أمس", "warning", created]);
+    await run(NOTIFICATION_SQL, [newId(), clinicA, null, "موعد جديد", "تم حجز موعد لمريض جديد اليوم الساعة 16:00", "appointment", created]);
+    await run(NOTIFICATION_SQL, [newId(), clinicA, null, "مريض لم يحضر", "لم يحضر المريض ماجد سالم القرني لموعده أمس", "warning", created]);
   });
 }

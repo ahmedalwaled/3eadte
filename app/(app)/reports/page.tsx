@@ -16,41 +16,47 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? "") ? (sp.month as string) : todayISO().slice(0, 7);
   const { from, to } = monthRange(month);
 
-  const totals = totalsInRange(user.clinicId, from, to);
-  const monthAppointments = appointmentsInRange(user.clinicId, from, to);
+  const totals = await totalsInRange(user.clinicId, from, to);
+  const monthAppointments = await appointmentsInRange(user.clinicId, from, to);
   const statusCounts = ["booked", "arrived", "waiting", "in_visit", "done", "no_show", "cancelled"].map((status) => ({
     status,
     count: monthAppointments.filter((item) => item.status === status).length,
   }));
 
   const visitsCount = Number(
-    all<{ n: number }>("SELECT COUNT(*) AS n FROM visits WHERE clinic_id = ? AND substr(visit_date, 1, 10) BETWEEN ? AND ?", [
-      user.clinicId,
-      from,
-      to,
-    ])[0]?.n ?? 0,
+    (
+      await all<{ n: number }>("SELECT COUNT(*) AS n FROM visits WHERE clinic_id = ? AND substr(visit_date, 1, 10) BETWEEN ? AND ?", [
+        user.clinicId,
+        from,
+        to,
+      ])
+    )[0]?.n ?? 0,
   );
   const newPatients = Number(
-    all<{ n: number }>(
-      "SELECT COUNT(*) AS n FROM patients WHERE clinic_id = ? AND substr(created_at, 1, 10) BETWEEN ? AND ?",
-      [user.clinicId, from, to],
+    (
+      await all<{ n: number }>(
+        "SELECT COUNT(*) AS n FROM patients WHERE clinic_id = ? AND substr(created_at, 1, 10) BETWEEN ? AND ?",
+        [user.clinicId, from, to],
+      )
     )[0]?.n ?? 0,
   );
 
-  const revenueByMonth = all<{ month: string; total: number }>(
-    `SELECT substr(paid_at, 1, 7) AS month, COALESCE(SUM(amount * COALESCE(rate, 1)), 0) AS total
+  const revenueByMonth = (
+    await all<{ month: string; total: number }>(
+      `SELECT substr(paid_at, 1, 7) AS month, COALESCE(SUM(amount * COALESCE(rate, 1)), 0) AS total
        FROM payments WHERE clinic_id = ? GROUP BY month ORDER BY month DESC LIMIT 6`,
-    [user.clinicId],
+      [user.clinicId],
+    )
   ).reverse();
 
-  const topDiagnoses = all<{ diagnosis: string; n: number }>(
+  const topDiagnoses = await all<{ diagnosis: string; n: number }>(
     `SELECT diagnosis, COUNT(*) AS n FROM visits
       WHERE clinic_id = ? AND substr(visit_date, 1, 10) BETWEEN ? AND ? AND diagnosis <> ''
       GROUP BY diagnosis ORDER BY n DESC LIMIT 6`,
     [user.clinicId, from, to],
   );
 
-  const receivables = all<{ id: string; name: string; balance: number }>(
+  const receivables = await all<{ id: string; name: string; balance: number }>(
     `SELECT * FROM (
         SELECT p.id, p.name,
                COALESCE((SELECT SUM(v.fee - v.discount) FROM visits v WHERE v.patient_id = p.id), 0)
@@ -60,8 +66,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     [user.clinicId],
   );
 
-  const byCurrency = paymentsByCurrency(user.clinicId, user.currency, from, to);
-  const currencies = clinicCurrencies(user.clinicId);
+  const byCurrency = await paymentsByCurrency(user.clinicId, user.currency, from, to);
+  const currencies = await clinicCurrencies(user.clinicId);
   const hasForeign = byCurrency.some((row) => row.currency !== user.currency);
 
   const maxRevenue = Math.max(1, ...revenueByMonth.map((row) => Number(row.total)));

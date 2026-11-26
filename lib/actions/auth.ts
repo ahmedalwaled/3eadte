@@ -8,13 +8,13 @@ import { ensureSeed } from "../seed";
 export type LoginState = { error?: string };
 
 export async function loginAction(_prev: LoginState | null, formData: FormData): Promise<LoginState> {
-  ensureSeed();
+  await ensureSeed();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) return { error: "أدخل البريد الإلكتروني وكلمة المرور" };
 
-  const user = get<{ id: string; password_hash: string; role: string; active: number }>(
+  const user = await get<{ id: string; password_hash: string; role: string; active: number }>(
     "SELECT id, password_hash, role, active FROM users WHERE lower(email) = ?",
     [email],
   );
@@ -23,7 +23,7 @@ export async function loginAction(_prev: LoginState | null, formData: FormData):
     return { error: "بيانات الدخول غير صحيحة" };
   }
 
-  const sessionId = createSession(user.id);
+  const sessionId = await createSession(user.id);
   await setSessionCookie(sessionId);
   redirect(user.role === "platform_admin" ? "/admin" : "/dashboard");
 }

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function PatientsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const user = await requireClinicUser();
   const { q = "" } = await searchParams;
-  const patients = patientList(user.clinicId, q);
+  const patients = await patientList(user.clinicId, q);
 
   return (
     <div>

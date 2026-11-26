@@ -12,13 +12,13 @@ type Item = { drug: string; dose: string; frequency: string; duration: string };
 
 export default async function PortalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const patient = get<{ id: string; clinic_id: string; name: string; code: string; birth_date: string; gender: string; phone: string }>(
+  const patient = await get<{ id: string; clinic_id: string; name: string; code: string; birth_date: string; gender: string; phone: string }>(
     "SELECT id, clinic_id, name, code, birth_date, gender, phone FROM patients WHERE portal_token = ?",
     [token],
   );
   if (!patient) notFound();
 
-  const clinic = get<{ name: string; phone: string; address: string; currency: string }>(
+  const clinic = await get<{ name: string; phone: string; address: string; currency: string }>(
     "SELECT name, phone, address, currency FROM clinics WHERE id = ?",
     [patient.clinic_id],
   );
@@ -36,25 +36,25 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
     );
   }
 
-  const appointments = all<{ id: string; starts_at: string; status: string; reason: string }>(
+  const appointments = await all<{ id: string; starts_at: string; status: string; reason: string }>(
     "SELECT id, starts_at, status, reason FROM appointments WHERE patient_id = ? AND starts_at >= ? ORDER BY starts_at LIMIT 10",
     [patient.id, new Date().toISOString().slice(0, 16)],
   );
-  const visits = all<{ id: string; visit_date: string; diagnosis: string; treatment: string; recommendations: string; follow_up: string; doctor_name: string }>(
+  const visits = await all<{ id: string; visit_date: string; diagnosis: string; treatment: string; recommendations: string; follow_up: string; doctor_name: string }>(
     `SELECT v.id, v.visit_date, v.diagnosis, v.treatment, v.recommendations, v.follow_up, u.name AS doctor_name
        FROM visits v JOIN users u ON u.id = v.doctor_id
       WHERE v.patient_id = ? AND v.shared = 1 ORDER BY v.visit_date DESC LIMIT 20`,
     [patient.id],
   );
-  const prescriptions = all<{ id: string; items: string; instructions: string; created_at: string }>(
+  const prescriptions = await all<{ id: string; items: string; instructions: string; created_at: string }>(
     "SELECT id, items, instructions, created_at FROM prescriptions WHERE patient_id = ? ORDER BY created_at DESC LIMIT 10",
     [patient.id],
   );
-  const attachments = all<{ id: string; filename: string; created_at: string }>(
-    "SELECT id, filename, created_at FROM attachments WHERE patient_id = ? AND share_with_portal = 1 ORDER BY created_at DESC LIMIT 20",
+  const attachments = await all<{ id: string; original_name: string; created_at: string }>(
+    "SELECT id, original_name, created_at FROM attachments WHERE patient_id = ? AND share_with_portal = 1 ORDER BY created_at DESC LIMIT 20",
     [patient.id],
   );
-  const balance = get<{ due: number; paid: number }>(
+  const balance = await get<{ due: number; paid: number }>(
     `SELECT COALESCE((SELECT SUM(fee - discount) FROM visits WHERE patient_id = ?), 0) AS due,
             COALESCE((SELECT SUM(amount * COALESCE(rate, 1)) FROM payments WHERE patient_id = ?), 0) AS paid`,
     [patient.id, patient.id],
@@ -117,7 +117,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
           <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">لا توجد زيارات مشاركة من العيادة.</p>
         ) : (
           <ul className="space-y-2">
-            {visits.map((visit) => (
+            {visits.map((visit: { id: string; visit_date: string; diagnosis: string; treatment: string; recommendations: string; follow_up: string; doctor_name: string }) => (
               <li key={visit.id} className="rounded-xl ring-1 ring-slate-200">
                 <div className="border-b border-slate-100 px-3 py-2">
                   <p className="text-[13px] font-bold text-slate-800">{visit.diagnosis}</p>
@@ -189,7 +189,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
             {attachments.map((file) => (
               <li key={file.id} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2.5">
                 <div>
-                  <p className="text-[13px] font-semibold text-slate-800">{file.filename}</p>
+                  <p className="text-[13px] font-semibold text-slate-800">{file.original_name}</p>
                   <p className="text-[11px] text-slate-500">{formatShortDate(file.created_at)}</p>
                 </div>
                 <a

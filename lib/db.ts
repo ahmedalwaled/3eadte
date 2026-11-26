@@ -1,13 +1,33 @@
-import { DatabaseSync } from "node:sqlite";
+import postgres from "postgres";
 import fs from "node:fs";
 import path from "node:path";
 
-const globalForDb = globalThis as unknown as { __clinicDb?: DatabaseSync; __clinicDbVersion?: number };
+const globalForDb = globalThis as unknown as { __clinicSql?: postgres.Sql };
 
-function dataDir() {
-  const dir = process.env.DATA_DIR ?? path.join(process.cwd(), "data");
-  fs.mkdirSync(dir, { recursive: true });
-  return dir;
+function databaseUrl(): string {
+  const url =
+    process.env.DATABASE_URL ??
+    process.env.POSTGRES_URL ??
+    process.env.SUPABASE_DB_URL ??
+    // Local development default (matches the sandbox's on-demand Postgres).
+    // On Vercel, DATABASE_URL must be set in the project settings -> Supabase.
+    (process.env.VERCEL ? undefined : "postgres://ubuntu:ubuntu@127.0.0.1:5432/app");
+  if (!url) throw new Error("DATABASE_URL غير مضبوط — اربط التطبيق بقاعدة Postgres أولاً");
+  return url;
+}
+
+function client(): postgres.Sql {
+  if (globalForDb.__clinicSql) return globalForDb.__clinicSql;
+  const sql = postgres(databaseUrl(), {
+    // Supabase's transaction pooler does not support prepared statements.
+    prepare: false,
+    max: 10,
+    idle_timeout: 30,
+    connect_timeout: 15,
+    ssl: databaseUrl().includes("localhost") || databaseUrl().includes("127.0.0.1") ? false : "prefer",
+  });
+  globalForDb.__clinicSql = sql;
+  return sql;
 }
 
 const SCHEMA = `
@@ -29,6 +49,7 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL,
   specialty TEXT DEFAULT '',
   active INTEGER NOT NULL DEFAULT 1,
+  denied_perms TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS patients (
@@ -167,75 +188,80 @@ CREATE INDEX IF NOT EXISTS idx_payments_clinic ON payments(clinic_id, paid_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 `;
 
-const SCHEMA_VERSION = 3;
+let schemaReady: Promise<void> | null = null;
 
-export function getStore(): DatabaseSync {
-  const cached = globalForDb.__clinicDb;
-  if (cached && globalForDb.__clinicDbVersion === SCHEMA_VERSION) return cached;
-  const db = cached ?? new DatabaseSync(path.join(dataDir(), "clinic.db"));
-  // Rollback journal, not WAL: WAL commits live in sidecar files that some hosts prune,
-  // which silently drops committed writes. This is a single-writer app, so WAL buys nothing.
-  db.exec("PRAGMA journal_mode = DELETE;");
-  db.exec("PRAGMA synchronous = FULL;");
-  db.exec("PRAGMA foreign_keys = ON;");
-  db.exec(SCHEMA);
-  migrate(db);
-  globalForDb.__clinicDb = db;
-  globalForDb.__clinicDbVersion = SCHEMA_VERSION;
-  return db;
-}
-
-/** Additive migrations for databases created before a column existed. */
-function migrate(db: DatabaseSync) {
-  const columns = [
-    ["payments", "currency", "currency TEXT NOT NULL DEFAULT ''"],
-    ["payments", "rate", "rate REAL NOT NULL DEFAULT 1"],
-    ["expenses", "currency", "currency TEXT NOT NULL DEFAULT ''"],
-    ["expenses", "rate", "rate REAL NOT NULL DEFAULT 1"],
-    ["attachments", "share_with_portal", "share_with_portal INTEGER NOT NULL DEFAULT 0"],
-    ["users", "denied_perms", "denied_perms TEXT NOT NULL DEFAULT ''"],
-  ] as const;
-  for (const [table, column, ddl] of columns) {
-    const existing = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
-    if (!existing.some((item) => item.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+function ensureSchema(): Promise<void> {
+  if (!schemaReady) {
+    schemaReady = (async () => {
+      const sql = client();
+      await sql.unsafe(SCHEMA);
+      // Rows written before multi-currency support were in the clinic's base currency.
+      for (const table of ["payments", "expenses"]) {
+        await sql.unsafe(
+          `UPDATE ${table} SET currency = COALESCE((SELECT currency FROM clinics WHERE clinics.id = ${table}.clinic_id), 'SAR') WHERE currency = ''`,
+        );
+      }
+    })().catch((error) => {
+      schemaReady = null;
+      throw error;
+    });
   }
-  // Rows written before multi-currency support were in the clinic's base currency, not in an unknown one.
-  for (const table of ["payments", "expenses"]) {
-    db.exec(
-      `UPDATE ${table} SET currency = COALESCE((SELECT currency FROM clinics WHERE clinics.id = ${table}.clinic_id), 'SAR') WHERE currency = ''`,
-    );
-  }
+  return schemaReady;
 }
 
-export function all<T = Record<string, unknown>>(sql: string, params: unknown[] = []): T[] {
-  const rows = getStore().prepare(sql).all(...(params as never[])) as Record<string, unknown>[];
-  return rows.map((row) => ({ ...row })) as T[];
+/** Translate SQLite-style `?` placeholders to Postgres `$1..$n`. */
+function toPg(sql: string, params: unknown[]): { text: string; values: unknown[] } {
+  let index = 0;
+  const text = sql.replace(/\?/g, () => `$${++index}`);
+  if (index !== params.length) throw new Error(`معاملات الاستعلام لا تطابق العناصر (${index} عنصرًا مقابل ${params.length})`);
+  return { text, values: params };
 }
 
-export function get<T = Record<string, unknown>>(sql: string, params: unknown[] = []): T | undefined {
-  const row = getStore().prepare(sql).get(...(params as never[])) as Record<string, unknown> | undefined;
-  return row ? ({ ...row } as T) : undefined;
+export async function all<T = Record<string, unknown>>(query: string, params: unknown[] = []): Promise<T[]> {
+  await ensureSchema();
+  const { text, values } = toPg(query, params);
+  const rows = await client().unsafe(text, values as never[]);
+  return rows.map((row) => ({ ...(row as Record<string, unknown>) })) as T[];
 }
 
-export function run(sql: string, params: unknown[] = []) {
-  return getStore().prepare(sql).run(...(params as never[]));
+export async function get<T = Record<string, unknown>>(query: string, params: unknown[] = []): Promise<T | undefined> {
+  const rows = await all<T>(query, params);
+  return rows[0];
 }
 
-export function tx<T>(fn: () => T): T {
-  const db = getStore();
-  db.exec("BEGIN");
-  try {
-    const out = fn();
-    db.exec("COMMIT");
-    return out;
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
+export async function run(query: string, params: unknown[] = []) {
+  await ensureSchema();
+  const { text, values } = toPg(query, params);
+  await client().unsafe(text, values as never[]);
+}
+
+/** Run writes atomically; the callback receives the awaited helpers. */
+export async function tx<T>(fn: (helpers: { get: typeof get; all: typeof all; run: typeof run }) => Promise<T>): Promise<T> {
+  await ensureSchema();
+  const sql = client();
+  return sql.begin(async (scoped) => {
+    const helpers = {
+      async get<X = Record<string, unknown>>(query: string, params: unknown[] = []): Promise<X | undefined> {
+        const { text, values } = toPg(query, params);
+        const rows = await scoped.unsafe(text, values as never[]);
+        return rows[0] as X | undefined;
+      },
+      async all<X = Record<string, unknown>>(query: string, params: unknown[] = []): Promise<X[]> {
+        const { text, values } = toPg(query, params);
+        const rows = await scoped.unsafe(text, values as never[]);
+        return rows.map((row) => ({ ...(row as Record<string, unknown>) })) as X[];
+      },
+      async run(query: string, params: unknown[] = []) {
+        const { text, values } = toPg(query, params);
+        await scoped.unsafe(text, values as never[]);
+      },
+    };
+    return fn(helpers);
+  }) as Promise<T>;
 }
 
 export const uploadsDir = () => {
-  const dir = path.join(dataDir(), "uploads");
+  const dir = process.env.UPLOADS_DIR ?? path.join(process.cwd(), "data", "uploads");
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 };

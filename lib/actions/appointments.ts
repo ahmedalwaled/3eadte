@@ -16,8 +16,8 @@ function revalidateAll(patientId?: string) {
   if (patientId) revalidatePath(`/patients/${patientId}`);
 }
 
-function notify(clinicId: string, title: string, body: string, kind = "appointment") {
-  run("INSERT INTO notifications (id, clinic_id, user_id, title, body, kind, created_at) VALUES (?,?,?,?,?,?,?)", [
+async function notify(clinicId: string, title: string, body: string, kind = "appointment") {
+  await run("INSERT INTO notifications (id, clinic_id, user_id, title, body, kind, created_at) VALUES (?,?,?,?,?,?,?)", [
     newId(),
     clinicId,
     null,
@@ -52,7 +52,7 @@ export async function createAppointment(_prev: ActionResult | null, formData: Fo
 
   if (!doctorId) {
     doctorId =
-      get<{ id: string }>("SELECT id FROM users WHERE clinic_id = ? AND role = 'doctor' AND active = 1 LIMIT 1", [clinicId])?.id ?? "";
+      (await get<{ id: string }>("SELECT id FROM users WHERE clinic_id = ? AND role = 'doctor' AND active = 1 LIMIT 1", [clinicId]))?.id ?? "";
   }
   if (!doctorId) return { error: "لا يوجد طبيب مفعّل في العيادة" };
 
@@ -60,9 +60,9 @@ export async function createAppointment(_prev: ActionResult | null, formData: Fo
     const name = String(formData.get("newPatientName") ?? "").trim();
     const phone = String(formData.get("newPatientPhone") ?? "").trim();
     if (!name) return { error: "اختر مريضاً مسجلاً أو أدخل اسم مريض جديد" };
-    const count = Number(get<{ n: number }>("SELECT COUNT(*) AS n FROM patients WHERE clinic_id = ?", [clinicId])?.n ?? 0);
+    const count = Number((await get<{ n: number }>("SELECT COUNT(*) AS n FROM patients WHERE clinic_id = ?", [clinicId]))?.n ?? 0);
     patientId = newId();
-    run(
+    await run(
       `INSERT INTO patients (id, clinic_id, code, name, phone, gender, birth_date, address, notes, portal_token, created_at)
        VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       [
@@ -80,7 +80,7 @@ export async function createAppointment(_prev: ActionResult | null, formData: Fo
       ],
     );
   } else {
-    const patient = get<{ id: string; name: string }>("SELECT id, name FROM patients WHERE id = ? AND clinic_id = ?", [
+    const patient = await get<{ id: string; name: string }>("SELECT id, name FROM patients WHERE id = ? AND clinic_id = ?", [
       patientId,
       clinicId,
     ]);
@@ -88,18 +88,18 @@ export async function createAppointment(_prev: ActionResult | null, formData: Fo
   }
 
   const startsAt = `${date}T${time}`;
-  const conflict = findConflict(clinicId, doctorId, startsAt, duration);
+  const conflict = await findConflict(clinicId, doctorId, startsAt, duration);
   if (conflict) {
     return { error: `يوجد تعارض مع موعد ${conflict.patient_name} الساعة ${conflict.starts_at.slice(11, 16)}` };
   }
 
-  run(
+  await run(
     "INSERT INTO appointments (id, clinic_id, patient_id, doctor_id, starts_at, duration, reason, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
     [newId(), clinicId, patientId, doctorId, startsAt, duration, reason, "booked", nowIso()],
   );
 
-  const patientName = get<{ name: string }>("SELECT name FROM patients WHERE id = ?", [patientId])?.name ?? "مريض";
-  notify(clinicId, "موعد جديد", `${patientName} — ${date} الساعة ${time}`, "appointment");
+  const patientName = (await get<{ name: string }>("SELECT name FROM patients WHERE id = ?", [patientId]))?.name ?? "مريض";
+  await notify(clinicId, "موعد جديد", `${patientName} — ${date} الساعة ${time}`, "appointment");
   revalidateAll(patientId);
   redirect(`/appointments?date=${date}`);
 }
@@ -111,20 +111,25 @@ export async function updateAppointmentStatus(formData: FormData) {
   const allowed = ["booked", "arrived", "waiting", "in_visit", "done", "no_show", "cancelled"];
   if (!allowed.includes(status)) return;
 
-  const appt = get<{ id: string; patient_id: string; starts_at: string; status: string }>(
+  const appt = await get<{ id: string; patient_id: string; starts_at: string; status: string }>(
     "SELECT id, patient_id, starts_at, status FROM appointments WHERE id = ? AND clinic_id = ?",
     [id, user.clinicId],
   );
   if (!appt) return;
 
-  run("UPDATE appointments SET status = ? WHERE id = ? AND clinic_id = ?", [status, id, user.clinicId]);
+  await run("UPDATE appointments SET status = ? WHERE id = ? AND clinic_id = ?", [status, id, user.clinicId]);
 
-  const patientName = get<{ name: string }>("SELECT name FROM patients WHERE id = ?", [appt.patient_id])?.name ?? "مريض";
+  const patientName = (await get<{ name: string }>("SELECT name FROM patients WHERE id = ?", [appt.patient_id]))?.name ?? "مريض";
   if (status === "cancelled") {
-    notify(user.clinicId, "إلغاء موعد", `تم إلغاء موعد ${patientName} — ${appt.starts_at.slice(0, 10)} ${appt.starts_at.slice(11, 16)}`, "warning");
+    await notify(
+      user.clinicId,
+      "إلغاء موعد",
+      `تم إلغاء موعد ${patientName} — ${appt.starts_at.slice(0, 10)} ${appt.starts_at.slice(11, 16)}`,
+      "warning",
+    );
   }
   if (status === "arrived") {
-    notify(user.clinicId, "تأكيد حضور", `حضر المريض ${patientName} لموعده`, "info");
+    await notify(user.clinicId, "تأكيد حضور", `حضر المريض ${patientName} لموعده`, "info");
   }
   revalidateAll(appt.patient_id);
 }
@@ -137,21 +142,21 @@ export async function rescheduleAppointment(_prev: ActionResult | null, formData
   const duration = Math.min(240, Math.max(10, Number(formData.get("duration") ?? 20) || 20));
   if (!date || !time) return { error: "حدد التاريخ والوقت بشكل صحيح" };
 
-  const appt = get<{ id: string; patient_id: string; doctor_id: string }>(
+  const appt = await get<{ id: string; patient_id: string; doctor_id: string }>(
     "SELECT id, patient_id, doctor_id FROM appointments WHERE id = ? AND clinic_id = ?",
     [id, user.clinicId],
   );
   if (!appt) return { error: "الموعد غير موجود" };
 
   const startsAt = `${date}T${time}`;
-  const conflict = findConflict(user.clinicId, appt.doctor_id, startsAt, duration, id);
+  const conflict = await findConflict(user.clinicId, appt.doctor_id, startsAt, duration, id);
   if (conflict) {
     return { error: `يوجد تعارض مع موعد ${conflict.patient_name} الساعة ${conflict.starts_at.slice(11, 16)}` };
   }
 
-  run("UPDATE appointments SET starts_at = ?, duration = ? WHERE id = ? AND clinic_id = ?", [startsAt, duration, id, user.clinicId]);
-  const patientName = get<{ name: string }>("SELECT name FROM patients WHERE id = ?", [appt.patient_id])?.name ?? "مريض";
-  notify(user.clinicId, "تعديل موعد", `تم نقل موعد ${patientName} إلى ${date} الساعة ${time}`, "warning");
+  await run("UPDATE appointments SET starts_at = ?, duration = ? WHERE id = ? AND clinic_id = ?", [startsAt, duration, id, user.clinicId]);
+  const patientName = (await get<{ name: string }>("SELECT name FROM patients WHERE id = ?", [appt.patient_id]))?.name ?? "مريض";
+  await notify(user.clinicId, "تعديل موعد", `تم نقل موعد ${patientName} إلى ${date} الساعة ${time}`, "warning");
   revalidateAll(appt.patient_id);
   redirect(`/appointments?date=${date}`);
 }
@@ -159,8 +164,8 @@ export async function rescheduleAppointment(_prev: ActionResult | null, formData
 export async function deleteAppointment(formData: FormData) {
   const user = await requireClinicUser(["doctor"]);
   const id = String(formData.get("id") ?? "");
-  const appt = get<{ patient_id: string }>("SELECT patient_id FROM appointments WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
+  const appt = await get<{ patient_id: string }>("SELECT patient_id FROM appointments WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
   if (!appt) return;
-  run("DELETE FROM appointments WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
+  await run("DELETE FROM appointments WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
   revalidateAll(appt.patient_id);
 }

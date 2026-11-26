@@ -43,10 +43,10 @@ export function verifyPassword(password: string, stored: string): boolean {
   return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
 }
 
-export function createSession(userId: string): string {
+export async function createSession(userId: string): Promise<string> {
   const id = crypto.randomBytes(32).toString("hex");
   const expires = new Date(Date.now() + 7 * DAY_MS).toISOString();
-  run("INSERT INTO sessions (id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)", [
+  await run("INSERT INTO sessions (id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)", [
     id,
     userId,
     expires,
@@ -73,7 +73,7 @@ export async function setSessionCookie(sessionId: string) {
 export async function clearSession() {
   const store = await cookies();
   const id = store.get(COOKIE)?.value;
-  if (id) run("DELETE FROM sessions WHERE id = ?", [id]);
+  if (id) await run("DELETE FROM sessions WHERE id = ?", [id]);
   store.delete(COOKIE);
 }
 
@@ -81,7 +81,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const store = await cookies();
   const sessionId = store.get(COOKIE)?.value;
   if (!sessionId) return null;
-  const row = get<Record<string, string | null>>(
+  const row = await get<Record<string, string | null>>(
     `SELECT u.id, u.name, u.email, u.role, u.clinic_id, u.specialty, u.active, u.denied_perms, c.name AS clinic_name,
             c.currency, c.active AS clinic_active, s.expires_at
        FROM sessions s
@@ -92,7 +92,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   );
   if (!row) return null;
   if (!row.expires_at || new Date(String(row.expires_at)) < new Date()) {
-    run("DELETE FROM sessions WHERE id = ?", [sessionId]);
+    await run("DELETE FROM sessions WHERE id = ?", [sessionId]);
     return null;
   }
   if (!row.active || (row.clinic_id && !row.clinic_active)) return null;

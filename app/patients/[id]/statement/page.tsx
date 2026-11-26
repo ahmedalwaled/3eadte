@@ -30,14 +30,14 @@ export default async function PatientStatementPage({
   const user = await requireClinicUser();
   const { id } = await params;
   const sp = await searchParams;
-  const patient = patientById(user.clinicId, id);
+  const patient = await patientById(user.clinicId, id);
   if (!patient) notFound();
 
   const from = /^\d{4}-\d{2}-\d{2}$/.test(sp.from ?? "") ? (sp.from as string) : "";
   const to = /^\d{4}-\d{2}-\d{2}$/.test(sp.to ?? "") ? (sp.to as string) : "";
 
-  const clinic = get<{ name: string; phone: string; address: string }>("SELECT name, phone, address FROM clinics WHERE id = ?", [user.clinicId]);
-  const balance = patientBalance(user.clinicId, id);
+  const clinic = await get<{ name: string; phone: string; address: string }>("SELECT name, phone, address FROM clinics WHERE id = ?", [user.clinicId]);
+  const balance = await patientBalance(user.clinicId, id);
 
   const inRange = (date: string) => {
     const day = date.slice(0, 10);
@@ -46,8 +46,8 @@ export default async function PatientStatementPage({
     return true;
   };
 
-  const visits = visitsForPatient(user.clinicId, id).filter((visit) => inRange(visit.visit_date));
-  const payments = paymentLedger(user.clinicId, id, user.currency).filter((payment) => inRange(payment.paid_at));
+  const visits = ((await visitsForPatient(user.clinicId, id))).filter((visit) => inRange(visit.visit_date));
+  const payments = ((await paymentLedger(user.clinicId, id, user.currency))).filter((payment) => inRange(payment.paid_at));
 
   const entries: Entry[] = [
     ...visits.map<Entry>((visit) => ({

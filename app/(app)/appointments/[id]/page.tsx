@@ -20,9 +20,9 @@ const FLOW: { status: string; label: string }[] = [
 export default async function AppointmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireClinicUser();
   const { id } = await params;
-  const appointment = appointmentById(user.clinicId, id);
+  const appointment = await appointmentById(user.clinicId, id);
   if (!appointment) notFound();
-  const patient = patientById(user.clinicId, appointment.patient_id);
+  const patient = await patientById(user.clinicId, appointment.patient_id);
 
   return (
     <div className="mx-auto max-w-3xl">

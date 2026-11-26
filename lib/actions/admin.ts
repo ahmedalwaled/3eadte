@@ -20,11 +20,11 @@ export async function createClinic(_prev: ActionResult | null, formData: FormDat
   if (doctorName.length < 2) return { error: "أدخل اسم الطبيب المسؤول" };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(doctorEmail)) return { error: "بريد الطبيب غير صحيح" };
   if (doctorPassword.length < 6) return { error: "كلمة المرور 6 أحرف على الأقل" };
-  if (get("SELECT id FROM users WHERE lower(email) = ?", [doctorEmail])) return { error: "البريد مستخدم مسبقاً" };
+  if (await get("SELECT id FROM users WHERE lower(email) = ?", [doctorEmail])) return { error: "البريد مستخدم مسبقاً" };
 
   const clinicId = newId();
-  tx(() => {
-    run("INSERT INTO clinics (id, name, phone, address, currency, created_at) VALUES (?,?,?,?,?,?)", [
+  await tx(async ({ run: txRun }) => {
+    await txRun("INSERT INTO clinics (id, name, phone, address, currency, created_at) VALUES (?,?,?,?,?,?)", [
       clinicId,
       name,
       phone,
@@ -32,7 +32,7 @@ export async function createClinic(_prev: ActionResult | null, formData: FormDat
       currency,
       nowIso(),
     ]);
-    run("INSERT INTO users (id, clinic_id, name, email, password_hash, role, specialty, created_at) VALUES (?,?,?,?,?,?,?,?)", [
+    await txRun("INSERT INTO users (id, clinic_id, name, email, password_hash, role, specialty, created_at) VALUES (?,?,?,?,?,?,?,?)", [
       newId(),
       clinicId,
       doctorName,
@@ -51,8 +51,8 @@ export async function createClinic(_prev: ActionResult | null, formData: FormDat
 export async function toggleClinic(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
-  const clinic = get<{ active: number }>("SELECT active FROM clinics WHERE id = ?", [id]);
+  const clinic = await get<{ active: number }>("SELECT active FROM clinics WHERE id = ?", [id]);
   if (!clinic) return;
-  run("UPDATE clinics SET active = ? WHERE id = ?", [clinic.active ? 0 : 1, id]);
+  await run("UPDATE clinics SET active = ? WHERE id = ?", [clinic.active ? 0 : 1, id]);
   revalidatePath("/admin");
 }

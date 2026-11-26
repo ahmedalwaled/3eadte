@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireClinicUser } from "@/lib/auth";
-import { get, run, newId, nowIso } from "@/lib/db";
+import { get, run, newId, nowIso, tx } from "@/lib/db";
 import type { ActionResult } from "./appointments";
 
 function revalidateVisit(patientId: string) {
@@ -24,7 +24,10 @@ export async function createVisit(_prev: ActionResult | null, formData: FormData
   const patientId = text(formData, "patientId");
   const appointmentId = text(formData, "appointmentId") || null;
 
-  const patient = get<{ id: string; name: string }>("SELECT id, name FROM patients WHERE id = ? AND clinic_id = ?", [patientId, user.clinicId]);
+  const patient = await get<{ id: string; name: string }>("SELECT id, name FROM patients WHERE id = ? AND clinic_id = ?", [
+    patientId,
+    user.clinicId,
+  ]);
   if (!patient) return { error: "المريض غير موجود" };
 
   const complaint = text(formData, "complaint");
@@ -39,7 +42,7 @@ export async function createVisit(_prev: ActionResult | null, formData: FormData
     : nowIso().slice(0, 16);
 
   const id = newId();
-  run(
+  await run(
     `INSERT INTO visits (id, clinic_id, patient_id, appointment_id, doctor_id, visit_date, complaint, vitals, exam, diagnosis,
       treatment, recommendations, follow_up, fee, discount, shared, created_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -65,9 +68,9 @@ export async function createVisit(_prev: ActionResult | null, formData: FormData
   );
 
   if (appointmentId) {
-    run("UPDATE appointments SET status = 'done' WHERE id = ? AND clinic_id = ?", [appointmentId, user.clinicId]);
+    await run("UPDATE appointments SET status = 'done' WHERE id = ? AND clinic_id = ?", [appointmentId, user.clinicId]);
   }
-  run("INSERT INTO notifications (id, clinic_id, user_id, title, body, kind, created_at) VALUES (?,?,?,?,?,?,?)", [
+  await run("INSERT INTO notifications (id, clinic_id, user_id, title, body, kind, created_at) VALUES (?,?,?,?,?,?,?)", [
     newId(),
     user.clinicId,
     null,
@@ -84,13 +87,13 @@ export async function createVisit(_prev: ActionResult | null, formData: FormData
 export async function updateVisit(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const user = await requireClinicUser(["doctor"]);
   const id = text(formData, "id");
-  const visit = get<{ patient_id: string }>("SELECT patient_id FROM visits WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
+  const visit = await get<{ patient_id: string }>("SELECT patient_id FROM visits WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
   if (!visit) return { error: "الزيارة غير موجودة" };
 
   const fee = Math.max(0, Number(formData.get("fee") ?? 0) || 0);
   const discount = Math.max(0, Number(formData.get("discount") ?? 0) || 0);
 
-  run(
+  await run(
     `UPDATE visits SET complaint = ?, vitals = ?, exam = ?, diagnosis = ?, treatment = ?, recommendations = ?,
        follow_up = ?, fee = ?, discount = ?, shared = ? WHERE id = ? AND clinic_id = ?`,
     [
@@ -116,7 +119,7 @@ export async function updateVisit(_prev: ActionResult | null, formData: FormData
 export async function addPrescription(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const user = await requireClinicUser(["doctor"]);
   const visitId = text(formData, "visitId");
-  const visit = get<{ patient_id: string }>("SELECT patient_id FROM visits WHERE id = ? AND clinic_id = ?", [visitId, user.clinicId]);
+  const visit = await get<{ patient_id: string }>("SELECT patient_id FROM visits WHERE id = ? AND clinic_id = ?", [visitId, user.clinicId]);
   if (!visit) return { error: "الزيارة غير موجودة" };
 
   const drugs = formData.getAll("drug").map(String);
@@ -135,7 +138,7 @@ export async function addPrescription(_prev: ActionResult | null, formData: Form
 
   if (items.length === 0) return { error: "أضف دواءً واحداً على الأقل" };
 
-  run("INSERT INTO prescriptions (id, clinic_id, patient_id, visit_id, doctor_id, items, instructions, created_at) VALUES (?,?,?,?,?,?,?,?)", [
+  await run("INSERT INTO prescriptions (id, clinic_id, patient_id, visit_id, doctor_id, items, instructions, created_at) VALUES (?,?,?,?,?,?,?,?)", [
     newId(),
     user.clinicId,
     visit.patient_id,
@@ -154,12 +157,12 @@ export async function addPrescription(_prev: ActionResult | null, formData: Form
 export async function deletePrescription(formData: FormData) {
   const user = await requireClinicUser(["doctor"]);
   const id = String(formData.get("id") ?? "");
-  const row = get<{ patient_id: string; visit_id: string | null }>(
+  const row = await get<{ patient_id: string; visit_id: string | null }>(
     "SELECT patient_id, visit_id FROM prescriptions WHERE id = ? AND clinic_id = ?",
     [id, user.clinicId],
   );
   if (!row) return;
-  run("DELETE FROM prescriptions WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
+  await tx(({ run: txRun }) => txRun("DELETE FROM prescriptions WHERE id = ? AND clinic_id = ?", [id, user.clinicId]));
   revalidateVisit(row.patient_id);
   if (row.visit_id) revalidatePath(`/visits/${row.visit_id}`);
 }
