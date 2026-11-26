@@ -1,0 +1,114 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { requireClinicUser } from "@/lib/auth";
+import { get, run, newId, nowIso } from "@/lib/db";
+import { hashPassword } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
+import type { ActionResult } from "./appointments";
+
+export async function updateClinic(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const user = await requireClinicUser(["doctor"]);
+  const name = String(formData.get("name") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const address = String(formData.get("address") ?? "").trim();
+  const currency = String(formData.get("currency") ?? "SAR").trim().toUpperCase().slice(0, 3);
+  if (name.length < 2) return { error: "أدخل اسم العيادة" };
+
+  run("UPDATE clinics SET name = ?, phone = ?, address = ?, currency = ? WHERE id = ?", [name, phone, address, currency, user.clinicId]);
+  revalidatePath("/settings");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function addStaff(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const user = await requireClinicUser(["doctor"]);
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const role = String(formData.get("role") ?? "secretary");
+  const specialty = String(formData.get("specialty") ?? "").trim();
+
+  if (name.length < 2) return { error: "أدخل اسم الموظف" };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "أدخل بريداً إلكترونياً صحيحاً" };
+  if (password.length < 6) return { error: "كلمة المرور 6 أحرف على الأقل" };
+  if (!["doctor", "secretary"].includes(role)) return { error: "صلاحية غير صالحة" };
+
+  const existing = get<{ id: string }>("SELECT id FROM users WHERE lower(email) = ?", [email]);
+  if (existing) return { error: "البريد مستخدم مسبقاً" };
+
+  run("INSERT INTO users (id, clinic_id, name, email, password_hash, role, specialty, created_at) VALUES (?,?,?,?,?,?,?,?)", [
+    newId(),
+    user.clinicId,
+    name,
+    email,
+    hashPassword(password),
+    role,
+    role === "doctor" ? specialty : "",
+    nowIso(),
+  ]);
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+export async function toggleStaff(formData: FormData) {
+  const user = await requireClinicUser(["doctor"]);
+  const id = String(formData.get("id") ?? "");
+  const staff = get<{ id: string; role: string; active: number }>("SELECT id, role, active FROM users WHERE id = ? AND clinic_id = ?", [
+    id,
+    user.clinicId,
+  ]);
+  if (!staff || staff.id === user.id) return;
+  run("UPDATE users SET active = ? WHERE id = ? AND clinic_id = ?", [staff.active ? 0 : 1, id, user.clinicId]);
+  logAudit({ clinicId: user.clinicId, userId: user.id, userName: user.name, action: staff.active ? "staff.deactivate" : "staff.activate", entity: "user", entityId: id, details: staff.role });
+  revalidatePath("/settings");
+}
+
+const SECRETARY_PERMS = ["finance", "reports", "uploads"] as const;
+
+export async function togglePerm(formData: FormData) {
+  const doctor = await requireClinicUser(["doctor"]);
+  const id = String(formData.get("id") ?? "");
+  const perm = String(formData.get("perm") ?? "");
+  if (!SECRETARY_PERMS.includes(perm as (typeof SECRETARY_PERMS)[number])) return;
+  const staff = get<{ id: string; role: string; denied_perms: string }>("SELECT id, role, denied_perms FROM users WHERE id = ? AND clinic_id = ?", [
+    id,
+    doctor.clinicId,
+  ]);
+  if (!staff || staff.role !== "secretary") return;
+  const denied = new Set(staff.denied_perms.split(",").filter(Boolean));
+  if (denied.has(perm)) denied.delete(perm);
+  else denied.add(perm);
+  run("UPDATE users SET denied_perms = ? WHERE id = ? AND clinic_id = ?", [[...denied].join(","), id, doctor.clinicId]);
+  logAudit({ clinicId: doctor.clinicId, userId: doctor.id, userName: doctor.name, action: "staff.perm", entity: "user", entityId: id, details: `${perm}:${!denied.has(perm) ? "منح" : "سحب"}` });
+  revalidatePath("/settings");
+}
+
+export async function addCurrency(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const user = await requireClinicUser(["doctor"]);
+  const code = String(formData.get("code") ?? "").trim().toUpperCase().slice(0, 3);
+  const rate = Number(formData.get("rate") ?? 0);
+
+  if (!/^[A-Z]{3}$/.test(code)) return { error: "اختر عملة صحيحة" };
+  if (code === user.currency) return { error: "هذه عملة العيادة الأساسية" };
+  if (!Number.isFinite(rate) || rate <= 0) return { error: "أدخل سعر صرف أكبر من صفر" };
+  if (rate > 100_000) return { error: "سعر الصرف أكبر من الحد المسموح" };
+
+  run(
+    "INSERT INTO clinic_currencies (clinic_id, code, rate, created_at) VALUES (?,?,?,?) ON CONFLICT(clinic_id, code) DO UPDATE SET rate = excluded.rate",
+    [user.clinicId, code, rate, nowIso()],
+  );
+  revalidatePath("/settings");
+  revalidatePath("/finance");
+  revalidatePath("/reports");
+  return { ok: true };
+}
+
+export async function deleteCurrency(formData: FormData) {
+  const user = await requireClinicUser(["doctor"]);
+  const code = String(formData.get("code") ?? "").trim().toUpperCase();
+  run("DELETE FROM clinic_currencies WHERE clinic_id = ? AND code = ?", [user.clinicId, code]);
+  revalidatePath("/settings");
+  revalidatePath("/finance");
+  revalidatePath("/reports");
+}
