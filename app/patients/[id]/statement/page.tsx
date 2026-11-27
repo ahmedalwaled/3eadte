@@ -93,6 +93,9 @@ export default async function PatientStatementPage({
             <input type="date" name="to" defaultValue={to} className="input !py-2 text-[12px]" aria-label="إلى تاريخ" />
             <button className="btn-ghost !py-2 text-xs">عرض</button>
           </form>
+          <a href={`/api/pdf/statement/${id}?from=${from}&to=${to}`} className="btn-ghost !py-2 text-xs">
+            تحميل PDF
+          </a>
           <PrintButton label="طباعة / حفظ PDF" />
         </div>
       </div>

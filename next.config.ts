@@ -10,7 +10,10 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  serverExternalPackages: ["node:sqlite"],
+  serverExternalPackages: ["node:sqlite", "pdfkit"],
+  outputFileTracingIncludes: {
+    "/api/pdf/**": ["./assets/fonts/**"],
+  },
 };
 
 export default nextConfig;

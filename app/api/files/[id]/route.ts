@@ -9,13 +9,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!user?.clinicId) return new NextResponse("غير مصرح", { status: 401 });
 
   const { id } = await params;
-  const row = await get<{ stored_name: string; original_name: string; mime: string }>(
-    "SELECT stored_name, original_name, mime FROM attachments WHERE id = ? AND clinic_id = ?",
+  const row = await get<{ stored_name: string; original_name: string; mime: string; content: Uint8Array | null }>(
+    "SELECT stored_name, original_name, mime, content FROM attachments WHERE id = ? AND clinic_id = ?",
     [id, user.clinicId],
   );
   if (!row) return new NextResponse("الملف غير موجود", { status: 404 });
 
-  const buffer = await fs.readFile(path.join(uploadsDir(), row.stored_name)).catch(() => null);
+  const buffer = row.content
+    ? Buffer.from(row.content)
+    : row.stored_name
+      ? await fs.readFile(path.join(uploadsDir(), row.stored_name)).catch(() => null)
+      : null;
   if (!buffer) return new NextResponse("الملف غير موجود", { status: 404 });
 
   return new NextResponse(new Uint8Array(buffer), {

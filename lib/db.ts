@@ -152,6 +152,8 @@ CREATE TABLE IF NOT EXISTS attachments (
   share_with_portal INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
 );
+ALTER TABLE attachments ADD COLUMN IF NOT EXISTS content BYTEA;
+ALTER TABLE attachments ALTER COLUMN stored_name SET DEFAULT '';
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY,
   clinic_id TEXT NOT NULL,

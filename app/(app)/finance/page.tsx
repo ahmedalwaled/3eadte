@@ -137,12 +137,17 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
                         </td>
                         <td className="td">{METHOD_LABEL[payment.method] ?? payment.method}</td>
                         <td className="td text-left">
-                          {isDoctor ? (
-                            <form action={deletePayment}>
-                              <input type="hidden" name="id" value={payment.id} />
-                              <button className="text-xs font-semibold text-rose-600 hover:underline">حذف</button>
-                            </form>
-                          ) : null}
+                          <div className="flex items-center justify-end gap-3">
+                            <a href={`/api/pdf/receipt/${payment.id}`} className="text-xs font-semibold text-teal-700 hover:underline">
+                              إيصال PDF
+                            </a>
+                            {isDoctor ? (
+                              <form action={deletePayment}>
+                                <input type="hidden" name="id" value={payment.id} />
+                                <button className="text-xs font-semibold text-rose-600 hover:underline">حذف</button>
+                              </form>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     ))}

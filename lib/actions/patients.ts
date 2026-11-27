@@ -108,22 +108,19 @@ export async function uploadAttachment(formData: FormData) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const safeName = file.name.replace(/[^\w.\-\u0600-\u06FF]/g, "_").slice(-120);
-  const ext = path.extname(file.name).toLowerCase();
-  const stored = `${newId()}${ext}`;
-  await fs.writeFile(path.join(uploadsDir(), stored), buffer);
-
   await run(
-    "INSERT INTO attachments (id, clinic_id, patient_id, visit_id, stored_name, original_name, mime, size, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO attachments (id, clinic_id, patient_id, visit_id, stored_name, original_name, mime, size, created_at, content) VALUES (?,?,?,?,?,?,?,?,?,?)",
     [
       newId(),
       user.clinicId,
       patientId,
       clean(formData.get("visitId")) || null,
-      stored,
+      "",
       safeName,
       file.type || "application/octet-stream",
       file.size,
       nowIso(),
+      new Uint8Array(buffer),
     ],
   );
   await logAudit({ clinicId: user.clinicId, userId: user.id, userName: user.name, action: "attachment.upload", entity: "attachment", entityId: patientId, details: safeName });
@@ -139,7 +136,7 @@ export async function deleteAttachment(formData: FormData) {
   );
   if (!row) return;
   await run("DELETE FROM attachments WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
-  await fs.unlink(path.join(uploadsDir(), row.stored_name)).catch(() => undefined);
+  if (row.stored_name) await fs.unlink(path.join(uploadsDir(), row.stored_name)).catch(() => undefined);
   await logAudit({ clinicId: user.clinicId, userId: user.id, userName: user.name, action: "attachment.delete", entity: "attachment", entityId: row.patient_id, details: row.stored_name });
   revalidatePatient(row.patient_id);
 }

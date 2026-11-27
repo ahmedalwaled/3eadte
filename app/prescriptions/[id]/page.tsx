@@ -34,7 +34,12 @@ export default async function PrescriptionPage({ params }: { params: Promise<{ i
         <Link href={`/patients/${patient.id}?tab=prescriptions`} className="btn-ghost">
           رجوع
         </Link>
-        <PrintButton label="طباعة الوصفة" />
+        <div className="flex items-center gap-2">
+          <a href={`/api/pdf/prescription/${prescription.id}`} className="btn-ghost">
+            تحميل PDF
+          </a>
+          <PrintButton label="طباعة الوصفة" />
+        </div>
       </div>
 
       <header className="flex items-start justify-between border-b-2 border-brand-700 pb-4">
