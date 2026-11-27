@@ -106,7 +106,7 @@ export default function AppShell({
           <div className="grid size-10 place-items-center rounded-xl bg-brand-700 text-base font-bold text-white">ع</div>
           <div>
             <p className="text-base font-extrabold text-slate-900">عيادتي</p>
-            <p className="max-w-[9rem] truncate text-[11px] text-slate-500">{user.clinicName ?? "إدارة المنصة"}</p>
+            <p className="max-w-[9rem] truncate text-[11px] text-slate-700">{user.clinicName ?? "إدارة المنصة"}</p>
           </div>
         </Link>
 
@@ -114,12 +114,12 @@ export default function AppShell({
 
         <div className="rounded-xl bg-slate-50 p-3">
           <p className="truncate text-sm font-bold text-slate-800">{user.name}</p>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-slate-700">
             {ROLE_LABEL[user.role] ?? user.role}
             {user.specialty ? ` · ${user.specialty}` : ""}
           </p>
           <form action={logoutAction} className="mt-2">
-            <button className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-rose-600">
+            <button className="flex items-center gap-2 text-xs font-semibold text-slate-700 hover:text-rose-600">
               <LogoutIcon className="size-4" />
               تسجيل الخروج
             </button>
@@ -145,7 +145,7 @@ export default function AppShell({
             </button>
             <div className="lg:hidden">
               <p className="text-sm font-extrabold text-slate-900">{user.clinicName ?? "عيادتي"}</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-slate-700">
                 {ROLE_LABEL[user.role] ?? user.role} · {user.name}
               </p>
             </div>

@@ -17,13 +17,13 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 const KIND_STYLE: Record<string, string> = {
-  patient: "bg-brand-50 text-brand-900 ring-brand-300",
-  appointment: "bg-sky-50 text-sky-900 ring-sky-300",
-  visit: "bg-violet-50 text-violet-900 ring-violet-300",
-  prescription: "bg-emerald-50 text-emerald-900 ring-emerald-300",
-  attachment: "bg-slate-100 text-slate-800 ring-slate-300",
-  payment: "bg-amber-50 text-amber-900 ring-amber-300",
-  expense: "bg-rose-50 text-rose-900 ring-rose-300",
+  patient: "bg-brand-700 text-white",
+  appointment: "bg-sky-700 text-white",
+  visit: "bg-violet-700 text-white",
+  prescription: "bg-emerald-700 text-white",
+  attachment: "bg-slate-600 text-white",
+  payment: "bg-amber-700 text-white",
+  expense: "bg-rose-700 text-white",
 };
 
 export default function GlobalSearch() {
@@ -109,15 +109,15 @@ export default function GlobalSearch() {
                     className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-slate-50"
                   >
                     <span
-                      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ring-1 ${
-                        KIND_STYLE[hit.kind] ?? "bg-slate-100 text-slate-700 ring-slate-200"
+                      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                        KIND_STYLE[hit.kind] ?? "bg-slate-600 text-white"
                       }`}
                     >
                       {KIND_LABEL[hit.kind] ?? hit.kind}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-semibold text-slate-800">{hit.title}</span>
-                      <span className="block truncate text-[11px] text-slate-600">{hit.sub}</span>
+                      <span className="block truncate text-[13px] font-semibold text-slate-900">{hit.title}</span>
+                      <span className="block truncate text-[11px] text-slate-700">{hit.sub}</span>
                     </span>
                   </Link>
                 </li>
