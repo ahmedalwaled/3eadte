@@ -145,7 +145,7 @@ export default function AppShell({
             </button>
             <div className="lg:hidden">
               <p className="text-sm font-extrabold text-slate-900">{user.clinicName ?? "عيادتي"}</p>
-              <p className="text-[11px] text-slate-700">
+              <p className="text-[12px] font-bold text-slate-900">
                 {ROLE_LABEL[user.role] ?? user.role} · {user.name}
               </p>
             </div>
@@ -168,7 +168,7 @@ export default function AppShell({
               <div className="grid size-8 place-items-center rounded-lg bg-brand-700 text-xs font-bold text-white">
                 {initials(user.name)}
               </div>
-              <span className="max-w-32 truncate text-xs font-semibold text-slate-700">{user.name}</span>
+              <span className="max-w-32 truncate text-xs font-bold text-slate-900">{user.name}</span>
             </div>
             <form action={logoutAction} className="sm:hidden">
               <button aria-label="خروج" className="grid size-10 place-items-center rounded-xl ring-1 ring-slate-200">

@@ -22,7 +22,7 @@ export default function CurrencySettings({ base, currencies }: { base: string; c
           {currencies.map((item) => (
             <li key={item.code} className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
               <span className="badge bg-white text-slate-700 ring-slate-200">{item.code}</span>
-              <span className="text-sm font-semibold text-slate-800">
+              <span className="text-sm font-bold text-slate-900">
                 {currencyLabel(item.code)} — 1 {item.code} = {money(item.rate, base)}
               </span>
               <form action={deleteCurrency} className="ms-auto">
