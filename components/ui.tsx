@@ -24,9 +24,9 @@ export function StatCard({
   };
   return (
     <div className={`card bg-gradient-to-bl p-4 ${tones[accent]}`}>
-      <p className="text-xs font-semibold opacity-80">{label}</p>
+      <p className="text-xs font-bold">{label}</p>
       <p className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">{value}</p>
-      {hint ? <p className="mt-0.5 text-[11px] text-slate-500">{hint}</p> : null}
+      {hint ? <p className="mt-0.5 text-[11px] font-medium text-slate-600">{hint}</p> : null}
     </div>
   );
 }
