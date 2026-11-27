@@ -85,7 +85,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
         <div>
           <p className="text-xs font-semibold text-brand-700">{clinic?.name}</p>
           <h1 className="mt-0.5 text-xl font-extrabold text-slate-900">{patient.name}</h1>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-slate-600">
             ملف {patient.code} · {age(patient.birth_date)}
           </p>
         </div>
@@ -104,12 +104,12 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
           <h2 className="mb-2 text-sm font-bold text-slate-800">رسائل العيادة</h2>
           <ul className="space-y-2">
             {messages.map((item) => (
-              <li key={item.id} className="rounded-xl bg-slate-50 px-3 py-2.5">
+              <li key={item.id} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[13px] font-bold text-slate-900">{item.title}</p>
-                  <span className="shrink-0 text-[10px] text-slate-500">{formatShortDate(item.created_at.slice(0, 10))}</span>
+                  <p className="text-[13px] font-bold text-slate-950">{item.title}</p>
+                  <span className="shrink-0 text-[11px] font-semibold text-slate-700">{formatShortDate(item.created_at.slice(0, 10))}</span>
                 </div>
-                <p className="mt-0.5 whitespace-pre-line text-[12px] text-slate-700">{item.body}</p>
+                <p className="mt-0.5 whitespace-pre-line text-[12px] text-slate-800">{item.body}</p>
               </li>
             ))}
           </ul>
@@ -122,7 +122,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
           <p className="text-lg font-extrabold text-brand-900">{appointments.length}</p>
         </div>
         <div className={`rounded-xl px-3 py-2.5 ${outstanding > 0 ? "bg-amber-50" : "bg-emerald-50"}`}>
-          <p className="text-[11px] text-slate-500">المبلغ المتبقي</p>
+          <p className="text-[11px] text-slate-600">المبلغ المتبقي</p>
           <p className={`text-lg font-extrabold ${outstanding > 0 ? "text-amber-800" : "text-emerald-800"}`}>{money(outstanding, currency)}</p>
         </div>
       </section>
@@ -130,7 +130,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
       <section className="mt-5">
         <h2 className="mb-2 text-sm font-bold text-slate-800">مواعيدك القادمة</h2>
         {appointments.length === 0 ? (
-          <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">لا توجد مواعيد قادمة.</p>
+          <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-600">لا توجد مواعيد قادمة.</p>
         ) : (
           <ul className="space-y-2">
             {appointments.map((appointment) => (
@@ -139,7 +139,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
                   <p className="text-[13px] font-semibold text-slate-800">
                     {formatDate(appointment.starts_at.slice(0, 10))} · {timeOf(appointment.starts_at)}
                   </p>
-                  <p className="text-[11px] text-slate-500">{appointment.reason || "زيارة"}</p>
+                  <p className="text-[11px] text-slate-600">{appointment.reason || "زيارة"}</p>
                 </div>
                 <span className="badge bg-white text-slate-600 ring-slate-200">
                   {appointment.status === "cancelled" ? "ملغي" : appointment.status === "booked" ? "مؤكد" : "قيد التنفيذ"}
@@ -153,14 +153,14 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
       <section className="mt-5">
         <h2 className="mb-2 text-sm font-bold text-slate-800">زياراتك المعتمدة</h2>
         {visits.length === 0 ? (
-          <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">لا توجد زيارات مشاركة من العيادة.</p>
+          <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-600">لا توجد زيارات مشاركة من العيادة.</p>
         ) : (
           <ul className="space-y-2">
             {visits.map((visit: { id: string; visit_date: string; diagnosis: string; treatment: string; recommendations: string; follow_up: string; doctor_name: string }) => (
               <li key={visit.id} className="rounded-xl ring-1 ring-slate-200">
                 <div className="border-b border-slate-100 px-3 py-2">
                   <p className="text-[13px] font-bold text-slate-800">{visit.diagnosis}</p>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-600">
                     {formatShortDate(visit.visit_date)} · {visit.doctor_name}
                   </p>
                 </div>
@@ -173,7 +173,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
                     .filter(([, value]) => Boolean(value))
                     .map(([label, value]) => (
                       <div key={label as string}>
-                        <dt className="font-semibold text-slate-500">{label}</dt>
+                        <dt className="font-semibold text-slate-600">{label}</dt>
                         <dd className="text-slate-700">{value}</dd>
                       </div>
                     ))}
@@ -187,7 +187,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
       <section className="mt-5">
         <h2 className="mb-2 text-sm font-bold text-slate-800">وصفاتك</h2>
         {prescriptions.length === 0 ? (
-          <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">لا توجد وصفات.</p>
+          <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-600">لا توجد وصفات.</p>
         ) : (
           <ul className="space-y-2">
             {prescriptions.map((prescription) => {
@@ -199,19 +199,19 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
               }
               return (
                 <li key={prescription.id} className="rounded-xl bg-slate-50 px-3 py-2.5">
-                  <p className="text-[11px] font-semibold text-slate-500">{formatShortDate(prescription.created_at)}</p>
+                  <p className="text-[11px] font-semibold text-slate-600">{formatShortDate(prescription.created_at)}</p>
                   <ul className="mt-1 space-y-1 text-[12px] text-slate-700">
                     {items.map((item, index) => (
                       <li key={index}>
                         <span className="font-semibold">{item.drug}</span>
-                        <span className="text-slate-500">
+                        <span className="text-slate-600">
                           {" "}
                           — {item.dose} · {item.frequency} · {item.duration}
                         </span>
                       </li>
                     ))}
                   </ul>
-                  {prescription.instructions ? <p className="mt-1 text-[11px] text-slate-500">{prescription.instructions}</p> : null}
+                  {prescription.instructions ? <p className="mt-1 text-[11px] text-slate-600">{prescription.instructions}</p> : null}
                 </li>
               );
             })}
@@ -222,14 +222,14 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
       <section className="mt-5">
         <h2 className="mb-2 text-sm font-bold text-slate-800">ملفاتك ومرفقاتك</h2>
         {attachments.length === 0 ? (
-          <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">لا توجد ملفات مشاركة من العيادة.</p>
+          <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-600">لا توجد ملفات مشاركة من العيادة.</p>
         ) : (
           <ul className="space-y-2">
             {attachments.map((file) => (
               <li key={file.id} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2.5">
                 <div>
                   <p className="text-[13px] font-semibold text-slate-800">{file.original_name}</p>
-                  <p className="text-[11px] text-slate-500">{formatShortDate(file.created_at)}</p>
+                  <p className="text-[11px] text-slate-600">{formatShortDate(file.created_at)}</p>
                 </div>
                 <a
                   href={`/api/portal/${token}/files/${file.id}`}
