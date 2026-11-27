@@ -57,14 +57,14 @@ export default async function SettingsPage() {
                     {member.name}
                     {member.id === user.id ? <span className="ms-2 text-[10px] font-semibold text-brand-700">(أنت)</span> : null}
                   </p>
-                  <p className="truncate text-[11px] text-slate-500" dir="ltr">
+                  <p className="truncate text-[12px] font-medium text-slate-600" dir="ltr">
                     {member.email}
                   </p>
                 </div>
                 <span className="badge bg-slate-100 text-slate-600 ring-slate-200">
                   {member.role === "doctor" ? `طبيب${member.specialty ? ` · ${member.specialty}` : ""}` : "سكرتيرة"}
                 </span>
-                <span className={`badge ${member.active ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-rose-50 text-rose-700 ring-rose-200"}`}>
+                <span className={`badge ${member.active ? "bg-emerald-50 text-emerald-800 ring-emerald-300" : "bg-white text-rose-800 ring-rose-300"}`}>
                   {member.active ? "مفعّل" : "موقوف"}
                 </span>
                 {member.role === "secretary" && member.active ? (
@@ -76,7 +76,7 @@ export default async function SettingsPage() {
                           <input type="hidden" name="id" value={member.id} />
                           <input type="hidden" name="perm" value={perm} />
                           <button
-                            className={`badge cursor-pointer ${granted ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-slate-50 text-slate-400 ring-slate-200"}`}
+                            className={`badge cursor-pointer ${granted ? "bg-emerald-50 text-emerald-800 ring-emerald-300" : "bg-white text-slate-600 ring-slate-300"}`}
                             title={granted ? "اضغط لسحب الصلاحية" : "اضغط لمنح الصلاحية"}
                           >
                             {label}
@@ -84,7 +84,7 @@ export default async function SettingsPage() {
                         </form>
                       );
                     })}
-                    <span className="text-[11px] leading-5 text-slate-500">
+                    <span className="text-[12px] leading-5 font-medium text-slate-600">
                       اضغط على أي صلاحية لمنحها أو سحبها — تحدد ما يظهر للسكرتيرة في القائمة ولوحة التحكم.
                     </span>
                   </div>
@@ -100,11 +100,11 @@ export default async function SettingsPage() {
                     </details>
                     <form action={toggleStaff}>
                       <input type="hidden" name="id" value={member.id} />
-                      <button className="text-xs font-semibold text-slate-500 hover:text-brand-700">{member.active ? "إيقاف" : "تفعيل"}</button>
+                      <button className="text-xs font-bold text-slate-700 hover:text-brand-800">{member.active ? "إيقاف" : "تفعيل"}</button>
                     </form>
                     <form action={deleteStaff}>
                       <input type="hidden" name="id" value={member.id} />
-                      <button className="text-xs font-semibold text-rose-600 hover:text-rose-800" aria-label={`حذف ${member.name}`}>حذف</button>
+                      <button className="text-xs font-bold text-rose-700 hover:text-rose-900" aria-label={`حذف ${member.name}`}>حذف</button>
                     </form>
                   </div>
                 ) : null}
