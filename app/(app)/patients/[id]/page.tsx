@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { requireClinicUser, requirePerm } from "@/lib/auth";
 import { all } from "@/lib/db";
@@ -11,7 +12,7 @@ import {
   visitsForPatient,
 } from "@/lib/queries";
 import { age, formatDate, formatShortDate, money, initials, timeOf } from "@/lib/format";
-import { uploadAttachment, deleteAttachment, toggleAttachmentShare, deletePatient } from "@/lib/actions/patients";
+import { uploadAttachment, deleteAttachment, toggleAttachmentShare, deletePatient, sendPortalMessage } from "@/lib/actions/patients";
 import { deletePayment } from "@/lib/actions/finance";
 import { deletePrescription } from "@/lib/actions/visits";
 import PaymentForm from "@/components/PaymentForm";
@@ -60,6 +61,11 @@ export default async function PatientPage({
   const balance = await patientBalance(user.clinicId, id);
   const currencies = await clinicCurrencies(user.clinicId);
   const isDoctor = user.role === "doctor";
+
+  const h = await headers();
+  const host = h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
+  const portalUrl = `${proto}://${host}/portal/${patient.portal_token}`;
 
   return (
     <div>
@@ -188,11 +194,31 @@ export default async function PatientPage({
                 <h2 className="section-title mb-2">بوابة المريض</h2>
                 <p className="text-[11px] text-slate-500">رابط خاص لعرض المواعيد والتقارير المعتمدة والوصفات.</p>
                 <div className="mt-2 flex items-center gap-2">
-                  <Link href={`/portal/${patient.portal_token}`} className="truncate text-xs font-semibold text-brand-700 hover:underline" dir="ltr">
-                    /portal/{patient.portal_token.slice(0, 8)}…
-                  </Link>
-                  <CopyButton value={`/portal/${patient.portal_token}`} label="نسخ" />
+                  <a
+                    href={portalUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="min-w-0 flex-1 truncate text-xs font-semibold text-brand-700 hover:underline"
+                    dir="ltr"
+                  >
+                    {portalUrl}
+                  </a>
+                  <CopyButton value={portalUrl} label="نسخ الرابط" />
                 </div>
+                <div className="mt-2 rounded-xl bg-slate-50 px-3 py-2">
+                  <p className="text-[11px] font-semibold text-slate-500">بيانات الدخول</p>
+                  <p className="mt-0.5 text-[13px] font-bold text-slate-900" dir="ltr">
+                    {patient.phone}
+                  </p>
+                  <p className="text-[11px] text-slate-500">رقم الجوال المسجل هو كلمة المرور التي يدخل بها المريض إلى بوابته.</p>
+                </div>
+                <form action={sendPortalMessage} className="mt-3 space-y-2 border-t border-slate-200 pt-3">
+                  <input type="hidden" name="id" value={patient.id} />
+                  <p className="text-[11px] font-semibold text-slate-500">إرسال إشعار للمريض</p>
+                  <input name="title" placeholder="عنوان الرسالة (اختياري)" className="field w-full text-xs" maxLength={80} />
+                  <textarea name="body" placeholder="نص الرسالة التي تصل للمريض على جواله" className="field w-full text-xs" rows={2} required maxLength={300} />
+                  <button className="btn-primary w-full !py-2 text-xs">إرسال الإشعار</button>
+                </form>
               </section>
 
               <section className="card card-pad">

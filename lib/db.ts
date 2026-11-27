@@ -191,6 +191,27 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_prescriptions_clinic ON prescriptions(clinic_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_expenses_clinic ON expenses(clinic_id, spent_at);
 CREATE INDEX IF NOT EXISTS idx_attachments_clinic ON attachments(clinic_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_notifications_patient ON notifications(patient_id, created_at);
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id TEXT PRIMARY KEY,
+  patient_id TEXT NOT NULL,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_push_patient ON push_subscriptions(patient_id);
+CREATE TABLE IF NOT EXISTS app_keys (
+  name TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS portal_reminders (
+  patient_id TEXT NOT NULL,
+  appointment_id TEXT NOT NULL,
+  sent_at TEXT NOT NULL,
+  PRIMARY KEY (patient_id, appointment_id)
+);
 `;
 
 let schemaReady: Promise<void> | null = null;

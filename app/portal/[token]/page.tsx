@@ -1,12 +1,25 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { all, get } from "@/lib/db";
 import { portalCookieName, portalCookieValue } from "@/lib/portal";
 import { portalLogout } from "@/lib/actions/portal";
 import PortalVerify from "@/components/PortalVerify";
+import PortalNotifier from "@/components/PortalNotifier";
 import { age, formatDate, formatShortDate, money, timeOf } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params;
+  const patient = await get<{ name: string; clinic_id: string }>("SELECT name, clinic_id FROM patients WHERE portal_token = ?", [token]);
+  const clinic = patient ? await get<{ name: string }>("SELECT name FROM clinics WHERE id = ?", [patient.clinic_id]) : null;
+  return {
+    title: patient ? `بوابة ${patient.name}` : "بوابة المريض",
+    description: clinic ? `بوابة المريض في ${clinic.name}` : undefined,
+    manifest: `/portal/${token}/manifest.webmanifest`,
+  };
+}
 
 type Item = { drug: string; dose: string; frequency: string; duration: string };
 
@@ -61,6 +74,11 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
   );
   const outstanding = Math.max(0, Number(balance?.due ?? 0) - Number(balance?.paid ?? 0));
 
+  const messages = await all<{ id: string; title: string; body: string; created_at: string }>(
+    "SELECT id, title, body, created_at FROM notifications WHERE patient_id = ? AND clinic_id = ? ORDER BY created_at DESC LIMIT 10",
+    [patient.id, patient.clinic_id],
+  );
+
   return (
     <main className="mx-auto min-h-dvh max-w-2xl bg-white px-4 py-6 sm:my-6 sm:rounded-2xl sm:ring-1 sm:ring-slate-200">
       <header className="flex items-start justify-between gap-3 border-b border-slate-200 pb-4">
@@ -76,6 +94,27 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
           <button className="btn-ghost !px-3 !py-1.5 text-[11px]">خروج</button>
         </form>
       </header>
+
+      <section className="mt-4">
+        <PortalNotifier token={token} />
+      </section>
+
+      {messages.length > 0 && (
+        <section className="mt-5">
+          <h2 className="mb-2 text-sm font-bold text-slate-800">رسائل العيادة</h2>
+          <ul className="space-y-2">
+            {messages.map((item) => (
+              <li key={item.id} className="rounded-xl bg-slate-50 px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[13px] font-bold text-slate-900">{item.title}</p>
+                  <span className="shrink-0 text-[10px] text-slate-500">{formatShortDate(item.created_at.slice(0, 10))}</span>
+                </div>
+                <p className="mt-0.5 whitespace-pre-line text-[12px] text-slate-700">{item.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-4 grid grid-cols-2 gap-2">
         <div className="rounded-xl bg-brand-50 px-3 py-2.5">

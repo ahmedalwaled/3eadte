@@ -56,3 +56,38 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+// Web Push: show the notification and open the portal when it is tapped.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "إشعار", body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "إشعار من العيادة";
+  const options = {
+    body: data.body || "",
+    icon: "/icon.svg",
+    badge: "/icon.svg",
+    dir: "rtl",
+    lang: "ar",
+    tag: data.tag || "portal",
+    renotify: true,
+    data: { url: data.url || "/" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if (client.url.includes(target) && "focus" in client) return client.focus();
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
+});
