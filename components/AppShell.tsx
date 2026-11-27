@@ -202,7 +202,7 @@ export default function AppShell({
                   <Link
                     href={item.href}
                     className={`flex flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold ${
-                      active ? "text-brand-700" : "text-slate-500"
+                      active ? "text-brand-700" : "text-slate-700"
                     }`}
                   >
                     <Icon className="size-5" />

@@ -12,7 +12,7 @@ export default function CurrencySettings({ base, currencies }: { base: string; c
   return (
     <section className="card">
       <h2 className="section-title">العملات</h2>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-slate-700">
         العملة الأساسية للعيادة: <span className="font-semibold text-slate-700">{currencyLabel(base)}</span>. أضف عملات أخرى مع سعر صرفها
         مقابل العملة الأساسية، وسيتم تحويل كل المبالغ إلى العملة الأساسية في التقارير.
       </p>
@@ -22,7 +22,7 @@ export default function CurrencySettings({ base, currencies }: { base: string; c
           {currencies.map((item) => (
             <li key={item.code} className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
               <span className="badge bg-white text-slate-700 ring-slate-200">{item.code}</span>
-              <span className="text-sm text-slate-600">
+              <span className="text-sm font-semibold text-slate-800">
                 {currencyLabel(item.code)} — 1 {item.code} = {money(item.rate, base)}
               </span>
               <form action={deleteCurrency} className="ms-auto">
@@ -35,7 +35,7 @@ export default function CurrencySettings({ base, currencies }: { base: string; c
           ))}
         </ul>
       ) : (
-        <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-500 ring-1 ring-slate-200">
+        <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200">
           لا توجد عملات إضافية بعد.
         </p>
       )}
