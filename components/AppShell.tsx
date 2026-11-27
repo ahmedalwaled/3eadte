@@ -112,8 +112,8 @@ export default function AppShell({
 
         <div className="mt-6 flex-1">{navList}</div>
 
-        <div className="rounded-xl bg-slate-50 p-3">
-          <p className="truncate text-sm font-bold text-slate-800">{user.name}</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="truncate text-sm font-bold text-slate-900">{user.name}</p>
           <p className="text-[11px] text-slate-700">
             {ROLE_LABEL[user.role] ?? user.role}
             {user.specialty ? ` · ${user.specialty}` : ""}
@@ -182,7 +182,7 @@ export default function AppShell({
           <div className="no-print border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
             {navList}
             <form action={logoutAction} className="mt-2 border-t border-slate-100 pt-2">
-              <button className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-500">
+              <button className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-700">
                 <LogoutIcon className="size-4" />
                 تسجيل الخروج
               </button>
