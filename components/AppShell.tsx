@@ -113,7 +113,7 @@ export default function AppShell({
         <div className="mt-6 flex-1">{navList}</div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="truncate text-sm font-bold text-slate-900">{user.name}</p>
+          <p className="truncate text-[15px] font-extrabold text-slate-900">{user.name}</p>
           <p className="text-[11px] text-slate-700">
             {ROLE_LABEL[user.role] ?? user.role}
             {user.specialty ? ` · ${user.specialty}` : ""}
@@ -190,9 +190,9 @@ export default function AppShell({
           </div>
         ) : null}
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 pb-24 lg:px-6 lg:pb-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 pb-6 lg:px-6 lg:pb-8">{children}</main>
 
-        <nav className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+        <nav className="no-print sticky bottom-0 z-20 border-t border-slate-200 bg-white shadow-[0_-2px_8px_rgba(15,23,42,0.06)] lg:hidden">
           <ul className="mx-auto flex max-w-lg items-stretch justify-between px-2 py-1.5">
             {items.slice(0, 5).map((item) => {
               const Icon = item.icon;

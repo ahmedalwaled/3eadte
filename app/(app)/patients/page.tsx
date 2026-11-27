@@ -85,7 +85,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
                     <td className="td">
                       <span
                         className={`badge ${
-                          patient.balance > 0 ? "bg-rose-50 text-rose-900 ring-rose-300" : "bg-emerald-50 text-emerald-900 ring-emerald-300"
+                          patient.balance > 0 ? "bg-white text-rose-900 ring-rose-400" : "bg-white text-emerald-900 ring-emerald-400"
                         }`}
                       >
                         {money(patient.balance, user.currency)}
@@ -123,7 +123,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
                       </p>
                     ) : null}
                   </div>
-                  <span className={`badge ${patient.balance > 0 ? "bg-rose-50 text-rose-800 ring-rose-200" : "bg-emerald-50 text-emerald-800 ring-emerald-200"}`}>
+                  <span className={`badge ${patient.balance > 0 ? "bg-white text-rose-900 ring-rose-400" : "bg-white text-emerald-900 ring-emerald-400"}`}>
                     {money(patient.balance, user.currency)}
                   </span>
                 </Link>
