@@ -95,6 +95,36 @@ export async function deletePatient(formData: FormData) {
   redirect("/patients");
 }
 
+export async function sendPortalMessage(formData: FormData) {
+  const user = await requireClinicUser(["doctor", "secretary"]);
+  if (!can(user, "patients")) return;
+  const id = clean(formData.get("id"));
+  const body = clean(formData.get("body")).slice(0, 300);
+  const title = clean(formData.get("title")).slice(0, 80) || "رسالة من العيادة";
+  if (!body) return;
+
+  const patient = await get<{ id: string; name: string; portal_token: string }>(
+    "SELECT id, name, portal_token FROM patients WHERE id = ? AND clinic_id = ?",
+    [id, user.clinicId],
+  );
+  if (!patient) return;
+
+  await run("INSERT INTO notifications (id, clinic_id, user_id, patient_id, title, body, kind, created_at) VALUES (?,?,?,?,?,?,?,?)", [
+    newId(),
+    user.clinicId,
+    user.id,
+    patient.id,
+    title,
+    body,
+    "portal",
+    nowIso(),
+  ]);
+  const { sendPushToPatient } = await import("@/lib/push");
+  await sendPushToPatient(patient.id, { title, body, url: `/portal/${patient.portal_token}` });
+  revalidatePatient(patient.id);
+  revalidatePath(`/portal/${patient.portal_token}`);
+}
+
 export async function uploadAttachment(formData: FormData) {
   const user = await requireClinicUser(["doctor", "secretary"]);
   if (!can(user, "uploads")) return;
