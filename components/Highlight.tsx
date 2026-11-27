@@ -1,26 +1,34 @@
+import { foldWithMap, normalizeArabic } from "@/lib/arabic";
+
 export default function Highlight({ text, query }: { text: string; query: string }) {
-  const needle = query.trim().toLowerCase();
+  const needle = normalizeArabic(query.trim().toLowerCase());
   if (!needle || !text) return <>{text}</>;
 
-  const haystack = text.toLowerCase();
+  const { text: haystack, map } = foldWithMap(text.toLowerCase());
+  const ranges: [number, number][] = [];
+  let index = haystack.indexOf(needle);
+  while (index !== -1) {
+    ranges.push([map[index], map[index + needle.length - 1] + 1]);
+    index = haystack.indexOf(needle, index + needle.length);
+  }
+  if (ranges.length === 0) return <>{text}</>;
+
   const parts: React.ReactNode[] = [];
   let from = 0;
-  let index = haystack.indexOf(needle, from);
-  while (index !== -1) {
-    if (index > from) parts.push(text.slice(from, index));
+  ranges.forEach(([start, end], i) => {
+    if (start > from) parts.push(text.slice(from, start));
     parts.push(
-      <mark key={index} className="rounded-sm bg-amber-200 text-inherit">
-        {text.slice(index, index + needle.length)}
+      <mark key={i} className="rounded-sm bg-amber-200 text-inherit">
+        {text.slice(start, end)}
       </mark>,
     );
-    from = index + needle.length;
-    index = haystack.indexOf(needle, from);
-  }
+    from = end;
+  });
   if (from < text.length) parts.push(text.slice(from));
   return <>{parts}</>;
 }
 
 export function matches(text: string, query: string) {
-  const needle = query.trim().toLowerCase();
-  return Boolean(needle) && text.toLowerCase().includes(needle);
+  const needle = normalizeArabic(query.trim().toLowerCase());
+  return Boolean(needle) && foldWithMap(text.toLowerCase()).text.includes(needle);
 }

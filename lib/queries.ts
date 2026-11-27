@@ -1,5 +1,6 @@
 import "server-only";
 import { all, get } from "./db";
+import { arabicNormSql, normalizeArabic } from "./arabic";
 
 export type AppointmentRow = {
   id: string;
@@ -99,7 +100,7 @@ export async function findConflict(
 }
 
 export async function patientList(clinicId: string, search = "", limit = 200): Promise<PatientRow[]> {
-  const q = `%${search.trim()}%`;
+  const q = `%${normalizeArabic(search.trim())}%`;
   return all<PatientRow>(
     `SELECT p.*,
             (SELECT MAX(v.visit_date) FROM visits v WHERE v.patient_id = p.id) AS last_visit,
@@ -107,7 +108,7 @@ export async function patientList(clinicId: string, search = "", limit = 200): P
             COALESCE((SELECT SUM(v.fee - v.discount) FROM visits v WHERE v.patient_id = p.id), 0)
               - COALESCE((SELECT SUM(pay.amount * COALESCE(pay.rate, 1)) FROM payments pay WHERE pay.patient_id = p.id), 0) AS balance
        FROM patients p
-      WHERE p.clinic_id = ? AND (? = '%%' OR p.name LIKE ? OR p.phone LIKE ? OR p.code LIKE ?)
+      WHERE p.clinic_id = ? AND (? = '%%' OR ${arabicNormSql("p.name")} ILIKE ? OR p.phone LIKE ? OR p.code LIKE ?)
       ORDER BY p.created_at DESC LIMIT ?`,
     [clinicId, q, q, q, q, limit],
   );
@@ -394,7 +395,7 @@ export async function globalSearch(
   q: string,
   scope: { patients: boolean; appointments: boolean; finance: boolean },
 ): Promise<SearchHit[]> {
-  const term = `%${q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+  const term = `%${normalizeArabic(q).replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
   const branches: { sql: string; params: unknown[] }[] = [];
 
   if (scope.patients) {
@@ -403,7 +404,7 @@ export async function globalSearch(
                    'ملف ' || p.code || ' · ' || COALESCE(NULLIF(p.phone, ''), 'بدون جوال') AS sub,
                    '/patients/' || p.id AS href
               FROM patients p
-             WHERE p.clinic_id = ? AND (p.name ILIKE ? OR p.phone ILIKE ? OR p.code ILIKE ? OR p.address ILIKE ?)
+             WHERE p.clinic_id = ? AND (${arabicNormSql("p.name")} ILIKE ? OR p.phone ILIKE ? OR p.code ILIKE ? OR ${arabicNormSql("p.address")} ILIKE ?)
              ORDER BY p.name LIMIT 6`,
       params: [clinicId, term, term, term, term],
     });
@@ -415,7 +416,7 @@ export async function globalSearch(
                    COALESCE(NULLIF(a.reason, ''), 'موعد') || ' · ' || substr(a.starts_at, 1, 10) AS sub,
                    '/appointments/' || a.id AS href
               FROM appointments a JOIN patients p ON p.id = a.patient_id
-             WHERE a.clinic_id = ? AND (p.name ILIKE ? OR a.reason ILIKE ? OR a.notes ILIKE ?)
+             WHERE a.clinic_id = ? AND (${arabicNormSql("p.name")} ILIKE ? OR ${arabicNormSql("a.reason")} ILIKE ? OR ${arabicNormSql("a.notes")} ILIKE ?)
              ORDER BY a.starts_at DESC LIMIT 6`,
       params: [clinicId, term, term, term],
     });
@@ -424,7 +425,7 @@ export async function globalSearch(
                    COALESCE(NULLIF(v.diagnosis, ''), NULLIF(v.complaint, ''), 'زيارة') || ' · ' || substr(v.visit_date, 1, 10) AS sub,
                    '/visits/' || v.id AS href
               FROM visits v JOIN patients p ON p.id = v.patient_id
-             WHERE v.clinic_id = ? AND (p.name ILIKE ? OR v.diagnosis ILIKE ? OR v.complaint ILIKE ? OR v.treatment ILIKE ?)
+             WHERE v.clinic_id = ? AND (${arabicNormSql("p.name")} ILIKE ? OR ${arabicNormSql("v.diagnosis")} ILIKE ? OR ${arabicNormSql("v.complaint")} ILIKE ? OR ${arabicNormSql("v.treatment")} ILIKE ?)
              ORDER BY v.visit_date DESC LIMIT 6`,
       params: [clinicId, term, term, term, term],
     });
@@ -433,7 +434,7 @@ export async function globalSearch(
                    COALESCE(NULLIF(pr.instructions, ''), 'وصفة طبية') || ' · ' || substr(pr.created_at, 1, 10) AS sub,
                    '/prescriptions/' || pr.id AS href
               FROM prescriptions pr JOIN patients p ON p.id = pr.patient_id
-             WHERE pr.clinic_id = ? AND (p.name ILIKE ? OR pr.items ILIKE ? OR pr.instructions ILIKE ?)
+             WHERE pr.clinic_id = ? AND (${arabicNormSql("p.name")} ILIKE ? OR ${arabicNormSql("pr.items")} ILIKE ? OR ${arabicNormSql("pr.instructions")} ILIKE ?)
              ORDER BY pr.created_at DESC LIMIT 6`,
       params: [clinicId, term, term, term],
     });
@@ -441,7 +442,7 @@ export async function globalSearch(
       sql: `SELECT 'attachment' AS kind, at.id, at.original_name AS title,
                    p.name AS sub, '/patients/' || at.patient_id AS href
               FROM attachments at JOIN patients p ON p.id = at.patient_id
-             WHERE at.clinic_id = ? AND (at.original_name ILIKE ? OR p.name ILIKE ?)
+             WHERE at.clinic_id = ? AND (${arabicNormSql("at.original_name")} ILIKE ? OR ${arabicNormSql("p.name")} ILIKE ?)
              ORDER BY at.created_at DESC LIMIT 4`,
       params: [clinicId, term, term],
     });
@@ -453,7 +454,7 @@ export async function globalSearch(
                    'دفع بتاريخ ' || substr(pay.paid_at, 1, 10) AS sub,
                    '/finance' AS href
               FROM payments pay JOIN patients p ON p.id = pay.patient_id
-             WHERE pay.clinic_id = ? AND (p.name ILIKE ? OR pay.note ILIKE ?)
+             WHERE pay.clinic_id = ? AND (${arabicNormSql("p.name")} ILIKE ? OR ${arabicNormSql("pay.note")} ILIKE ?)
              ORDER BY pay.paid_at DESC LIMIT 4`,
       params: [clinicId, term, term],
     });
@@ -462,7 +463,7 @@ export async function globalSearch(
                    COALESCE(NULLIF(e.note, ''), NULLIF(e.category, ''), 'مصروف') AS sub,
                    '/finance' AS href
               FROM expenses e
-             WHERE e.clinic_id = ? AND (e.title ILIKE ? OR e.note ILIKE ? OR e.category ILIKE ?)
+             WHERE e.clinic_id = ? AND (${arabicNormSql("e.title")} ILIKE ? OR ${arabicNormSql("e.note")} ILIKE ? OR ${arabicNormSql("e.category")} ILIKE ?)
              ORDER BY e.spent_at DESC LIMIT 5`,
       params: [clinicId, term, term, term],
     });
