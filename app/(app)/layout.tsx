@@ -12,7 +12,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <AppShell
-      user={{ name: user.name, role: user.role, clinicName: user.clinicName, specialty: user.specialty }}
+      user={{
+        name: user.name,
+        role: user.role,
+        clinicName: user.clinicName,
+        specialty: user.specialty,
+        deniedPerms: user.deniedPerms,
+      }}
       unread={unread}
     >
       {children}

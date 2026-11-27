@@ -19,7 +19,13 @@ export default async function SettingsPage() {
     "SELECT id, name, email, role, specialty, active, denied_perms, created_at FROM users WHERE clinic_id = ? ORDER BY role, name",
     [user.clinicId],
   );
-  const PERM_LABELS: Record<string, string> = { finance: "المالية", reports: "التقارير", uploads: "رفع الملفات" };
+  const PERM_LABELS: Record<string, string> = {
+    appointments: "المواعيد",
+    patients: "المرضى",
+    finance: "المالية",
+    reports: "التقارير",
+    uploads: "رفع الملفات",
+  };
 
   return (
     <div>
@@ -78,6 +84,9 @@ export default async function SettingsPage() {
                         </form>
                       );
                     })}
+                    <span className="text-[11px] leading-5 text-slate-500">
+                      اضغط على أي صلاحية لمنحها أو سحبها — تحدد ما يظهر للسكرتيرة في القائمة ولوحة التحكم.
+                    </span>
                   </div>
                 ) : null}
                 <span className="hidden text-[11px] text-slate-400 sm:block">منذ {formatDate(member.created_at.slice(0, 10))}</span>

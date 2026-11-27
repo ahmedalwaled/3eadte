@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireClinicUser } from "@/lib/auth";
+import { requireClinicUser, requirePerm } from "@/lib/auth";
 import { patientList } from "@/lib/queries";
 import { age, formatShortDate, money, initials } from "@/lib/format";
 import { EmptyState, PageHeader } from "@/components/ui";
@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PatientsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const user = await requireClinicUser();
+  requirePerm(user, "patients");
   const { q = "" } = await searchParams;
   const patients = await patientList(user.clinicId, q);
 

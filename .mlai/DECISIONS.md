@@ -12,3 +12,11 @@
 ## Session cookie `secure` flag follows the request protocol
 - `lib/auth.ts` sets `secure` only when `x-forwarded-proto` is `https`.
 - Reason: the preview host can serve plain HTTP; a Secure cookie is dropped there and every navigation after login bounced back to `/login`.
+
+## Patient attachments live in Postgres bytea, not on disk (2026-11-27)
+- `attachments.content BYTEA` holds the file; `stored_name` stays for legacy disk rows (read falls back to disk when it is set).
+- Reason: Netlify functions have an ephemeral filesystem, so disk uploads vanished between deploys; Supabase Storage keys are not in the Vault (only `$SUPABASE_TOKEN` and `$SUPABASE_DB_PASSWORD`), so bytea needs no new secret and works identically on Netlify and locally.
+
+## Arabic PDFs via pdfkit, font shipped in repo (2026-11-27)
+- `lib/pdf.ts` uses pdfkit with `assets/fonts/NotoNaskhArabic.ttf` (committed), included in the Netlify bundle via `outputFileTracingIncludes` in `next.config.ts` — verified working on the live site (deploy `4cab1ee`).
+- Verified end to end on https://3eadte.netlify.app: prescription, receipt and statement PDFs return 200 `application/pdf` with correct Arabic content.

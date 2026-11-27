@@ -1,4 +1,4 @@
-import { requireClinicUser } from "@/lib/auth";
+import { requireClinicUser, requirePerm } from "@/lib/auth";
 import { all } from "@/lib/db";
 import { doctorsFor } from "@/lib/queries";
 import { todayISO } from "@/lib/format";
@@ -11,6 +11,7 @@ export default async function NewAppointmentPage({
   searchParams: Promise<{ date?: string; patientId?: string; time?: string }>;
 }) {
   const user = await requireClinicUser();
+  requirePerm(user, "appointments");
   const sp = await searchParams;
 
   const patients = await all<{ id: string; name: string; code: string; phone: string }>(

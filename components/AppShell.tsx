@@ -22,6 +22,7 @@ type ShellUser = {
   role: string;
   clinicName: string | null;
   specialty: string;
+  deniedPerms: string[];
 };
 
 type NavItem = { href: string; label: string; icon: (props: { className?: string }) => React.ReactElement };
@@ -32,17 +33,28 @@ const ROLE_LABEL: Record<string, string> = {
   platform_admin: "مدير المنصة",
 };
 
-function navFor(role: string): NavItem[] {
+const PERM_FOR_HREF: Record<string, string> = {
+  "/appointments": "appointments",
+  "/patients": "patients",
+  "/finance": "finance",
+  "/reports": "reports",
+};
+
+function navFor(role: string, deniedPerms: string[]): NavItem[] {
   if (role === "platform_admin") {
     return [{ href: "/admin", label: "العيادات والحسابات", icon: ShieldIcon }];
   }
+  const granted = (href: string) => {
+    const perm = PERM_FOR_HREF[href];
+    return role === "doctor" || !perm || !deniedPerms.includes(perm);
+  };
   const items: NavItem[] = [
     { href: "/dashboard", label: "لوحة التحكم", icon: HomeIcon },
     { href: "/appointments", label: "المواعيد", icon: CalendarIcon },
     { href: "/patients", label: "المرضى", icon: UsersIcon },
     { href: "/finance", label: "الحسابات", icon: WalletIcon },
     { href: "/reports", label: "التقارير", icon: ChartIcon },
-  ];
+  ].filter((item) => granted(item.href));
   if (role === "doctor")
     items.push(
       { href: "/audit", label: "سجل التدقيق", icon: ShieldIcon },
@@ -62,7 +74,7 @@ export default function AppShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const items = navFor(user.role);
+  const items = navFor(user.role, user.deniedPerms);
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   const navList = (

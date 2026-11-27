@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireClinicUser } from "@/lib/auth";
+import { requireClinicUser, requirePerm } from "@/lib/auth";
 import { appointmentById, patientById } from "@/lib/queries";
 import { formatDate, timeOf } from "@/lib/format";
 import { deleteAppointment, updateAppointmentStatus } from "@/lib/actions/appointments";
@@ -19,6 +19,7 @@ const FLOW: { status: string; label: string }[] = [
 
 export default async function AppointmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireClinicUser();
+  requirePerm(user, "appointments");
   const { id } = await params;
   const appointment = await appointmentById(user.clinicId, id);
   if (!appointment) notFound();

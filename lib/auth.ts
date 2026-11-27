@@ -19,11 +19,25 @@ export type CurrentUser = {
 }
 
 /** Granular permissions a clinic may withhold from secretaries. Doctors always have them. */
-export type Perm = "finance" | "reports" | "uploads";
+export type Perm = "appointments" | "patients" | "finance" | "reports" | "uploads";
+
+/** Every permission, in the order the settings page shows them. */
+export const PERMS: { perm: Perm; label: string; hint: string }[] = [
+  { perm: "appointments", label: "المواعيد", hint: "التقويم وحجز المواعيد وقائمة اليوم" },
+  { perm: "patients", label: "المرضى", hint: "ملفات المرضى والبحث فيهم" },
+  { perm: "finance", label: "الحسابات", hint: "المدفوعات والمصاريف وأرقام الإيراد في لوحة التحكم" },
+  { perm: "reports", label: "التقارير", hint: "التقارير وتصديرها" },
+  { perm: "uploads", label: "الملفات", hint: "رفع مرفقات المرضى وحذفها" },
+];
 
 export function can(user: CurrentUser, perm: Perm): boolean {
   if (user.role === "doctor" || user.role === "platform_admin") return true;
   return !user.deniedPerms.includes(perm);
+}
+
+/** Send the user back to the dashboard when they lack a section permission. */
+export function requirePerm(user: CurrentUser, perm: Perm): void {
+  if (!can(user, perm)) redirect("/dashboard");
 }
 
 const COOKIE = "clinic_session";

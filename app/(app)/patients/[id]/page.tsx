@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireClinicUser } from "@/lib/auth";
+import { requireClinicUser, requirePerm } from "@/lib/auth";
 import { all } from "@/lib/db";
 import {
   clinicCurrencies,
@@ -39,6 +39,7 @@ export default async function PatientPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const user = await requireClinicUser();
+  requirePerm(user, "patients");
   const { id } = await params;
   const { tab = "overview" } = await searchParams;
 

@@ -188,6 +188,9 @@ CREATE INDEX IF NOT EXISTS idx_appts_clinic ON appointments(clinic_id, starts_at
 CREATE INDEX IF NOT EXISTS idx_visits_clinic ON visits(clinic_id, patient_id);
 CREATE INDEX IF NOT EXISTS idx_payments_clinic ON payments(clinic_id, paid_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_clinic ON prescriptions(clinic_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_expenses_clinic ON expenses(clinic_id, spent_at);
+CREATE INDEX IF NOT EXISTS idx_attachments_clinic ON attachments(clinic_id, created_at);
 `;
 
 let schemaReady: Promise<void> | null = null;
@@ -197,6 +200,21 @@ function ensureSchema(): Promise<void> {
     schemaReady = (async () => {
       const sql = client();
       await sql.unsafe(SCHEMA);
+      // Best effort: trigram indexes keep `ILIKE '%…%'` global search fast. When the
+      // database role cannot install the extension, search still works (plain scan).
+      await sql.unsafe("CREATE EXTENSION IF NOT EXISTS pg_trgm").catch(() => {});
+      const trgm = [
+        ["idx_patients_name_trgm", "patients", "name"],
+        ["idx_patients_phone_trgm", "patients", "phone"],
+        ["idx_appts_reason_trgm", "appointments", "reason"],
+        ["idx_visits_diagnosis_trgm", "visits", "diagnosis"],
+        ["idx_prescriptions_items_trgm", "prescriptions", "items"],
+        ["idx_expenses_title_trgm", "expenses", "title"],
+        ["idx_attachments_name_trgm", "attachments", "original_name"],
+      ] as const;
+      for (const [index, table, column] of trgm) {
+        await sql.unsafe(`CREATE INDEX IF NOT EXISTS ${index} ON ${table} USING gin (${column} gin_trgm_ops)`).catch(() => {});
+      }
       // Rows written before multi-currency support were in the clinic's base currency.
       for (const table of ["payments", "expenses"]) {
         await sql.unsafe(

@@ -64,7 +64,7 @@ export async function toggleStaff(formData: FormData) {
   revalidatePath("/settings");
 }
 
-const SECRETARY_PERMS = ["finance", "reports", "uploads"] as const;
+const SECRETARY_PERMS = ["appointments", "patients", "finance", "reports", "uploads"] as const;
 
 export async function togglePerm(formData: FormData) {
   const doctor = await requireClinicUser(["doctor"]);

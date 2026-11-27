@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireClinicUser } from "@/lib/auth";
+import { requireClinicUser, requirePerm } from "@/lib/auth";
 import { all } from "@/lib/db";
 import { appointmentsInRange, appointmentsOnDate } from "@/lib/queries";
 import { addDays, formatDate, formatShortDate, formatWeekday, money, timeOf, todayISO } from "@/lib/format";
@@ -34,6 +34,7 @@ export default async function AppointmentsPage({
   searchParams: Promise<{ date?: string; view?: string }>;
 }) {
   const user = await requireClinicUser();
+  requirePerm(user, "appointments");
   const sp = await searchParams;
   const date = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? (sp.date as string) : todayISO();
   const view: View = sp.view === "week" || sp.view === "month" ? sp.view : "day";
