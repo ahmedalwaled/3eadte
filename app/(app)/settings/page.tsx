@@ -61,10 +61,10 @@ export default async function SettingsPage() {
                     {member.email}
                   </p>
                 </div>
-                <span className="badge bg-slate-100 text-slate-600 ring-slate-200">
+                <span className="badge bg-slate-100 ring-slate-300" style={{ color: "#1e293b" }}>
                   {member.role === "doctor" ? `طبيب${member.specialty ? ` · ${member.specialty}` : ""}` : "سكرتيرة"}
                 </span>
-                <span className={`badge ${member.active ? "bg-emerald-50 text-emerald-800 ring-emerald-300" : "bg-white text-rose-800 ring-rose-300"}`}>
+                <span className="badge bg-white ring-slate-400" style={{ color: member.active ? "#065f46" : "#9f1239" }}>
                   {member.active ? "مفعّل" : "موقوف"}
                 </span>
                 {member.role === "secretary" && member.active ? (
@@ -104,7 +104,7 @@ export default async function SettingsPage() {
                     </form>
                     <form action={deleteStaff}>
                       <input type="hidden" name="id" value={member.id} />
-                      <button className="text-xs font-bold text-rose-700 hover:text-rose-900" aria-label={`حذف ${member.name}`}>حذف</button>
+                      <button className="text-[13px] font-black hover:underline" style={{ color: "#9f1239" }} aria-label={`حذف ${member.name}`}>حذف</button>
                     </form>
                   </div>
                 ) : null}

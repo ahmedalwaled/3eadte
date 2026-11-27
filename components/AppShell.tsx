@@ -113,8 +113,8 @@ export default function AppShell({
         <div className="mt-6 flex-1">{navList}</div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="truncate text-[15px] font-extrabold text-slate-900">{user.name}</p>
-          <p className="text-[11px] text-slate-700">
+          <p className="truncate text-base font-black" style={{ color: "#0b1220" }}>{user.name}</p>
+          <p className="text-[13px] font-bold" style={{ color: "#1e293b" }}>
             {ROLE_LABEL[user.role] ?? user.role}
             {user.specialty ? ` · ${user.specialty}` : ""}
           </p>
@@ -168,7 +168,7 @@ export default function AppShell({
               <div className="grid size-8 place-items-center rounded-lg bg-brand-700 text-xs font-bold text-white">
                 {initials(user.name)}
               </div>
-              <span className="max-w-32 truncate text-xs font-bold text-slate-900">{user.name}</span>
+              <span className="max-w-32 truncate text-sm font-black" style={{ color: "#0b1220" }}>{user.name}</span>
             </div>
             <form action={logoutAction} className="sm:hidden">
               <button aria-label="خروج" className="grid size-10 place-items-center rounded-xl ring-1 ring-slate-200">
