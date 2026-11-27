@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireClinicUser } from "@/lib/auth";
-import { get, run, newId, nowIso } from "@/lib/db";
+import { get, all, run, tx, newId, nowIso } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import type { ActionResult } from "./appointments";
@@ -49,6 +49,49 @@ export async function addStaff(_prev: ActionResult | null, formData: FormData): 
   ]);
   revalidatePath("/settings");
   return { ok: true };
+}
+
+export async function updateStaff(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const user = await requireClinicUser(["doctor"]);
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const specialty = String(formData.get("specialty") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (name.length < 2) return { error: "أدخل اسم الموظف" };
+  const staff = await get<{ id: string; role: string }>("SELECT id, role FROM users WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
+  if (!staff) return { error: "المستخدم غير موجود" };
+  if (password && password.length < 6) return { error: "كلمة المرور 6 أحرف على الأقل" };
+
+  await run(
+    staff.role === "doctor"
+      ? "UPDATE users SET name = ?, specialty = ? WHERE id = ? AND clinic_id = ?"
+      : "UPDATE users SET name = ?, specialty = '' WHERE id = ? AND clinic_id = ?",
+    staff.role === "doctor" ? [name, specialty, id, user.clinicId] : [name, id, user.clinicId],
+  );
+  if (password) await run("UPDATE users SET password_hash = ? WHERE id = ? AND clinic_id = ?", [hashPassword(password), id, user.clinicId]);
+  await logAudit({ clinicId: user.clinicId, userId: user.id, userName: user.name, action: "staff.update", entity: "user", entityId: id, details: name });
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+export async function deleteStaff(formData: FormData) {
+  const user = await requireClinicUser(["doctor"]);
+  const id = String(formData.get("id") ?? "");
+  if (id === user.id) return;
+  const staff = await get<{ id: string; role: string; name: string }>("SELECT id, role, name FROM users WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
+  if (!staff) return;
+
+  const [{ n: openAppointments } = { n: 0 }] = await all<{ n: number }>("SELECT COUNT(*) AS n FROM appointments WHERE doctor_id = ? AND clinic_id = ? AND status = 'booked'", [id, user.clinicId]);
+  if (openAppointments > 0) return;
+
+  await tx(async ({ run: txRun }) => {
+    await txRun("DELETE FROM sessions WHERE user_id = ?", [id]);
+    await txRun("DELETE FROM notifications WHERE user_id = ?", [id]);
+    await txRun("DELETE FROM users WHERE id = ? AND clinic_id = ?", [id, user.clinicId]);
+  });
+  await logAudit({ clinicId: user.clinicId, userId: user.id, userName: user.name, action: "staff.delete", entity: "user", entityId: id, details: `${staff.role}:${staff.name}` });
+  revalidatePath("/settings");
 }
 
 export async function toggleStaff(formData: FormData) {

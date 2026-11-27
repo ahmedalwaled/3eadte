@@ -1,8 +1,8 @@
 import { requireClinicUser } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { clinicCurrencies } from "@/lib/queries";
-import { toggleStaff, togglePerm } from "@/lib/actions/settings";
-import { ClinicForm, StaffForm } from "@/components/SettingsForms";
+import { toggleStaff, deleteStaff, togglePerm } from "@/lib/actions/settings";
+import { ClinicForm, StaffForm, StaffEditForm } from "@/components/SettingsForms";
 import CurrencySettings from "@/components/CurrencySettings";
 import { PageHeader } from "@/components/ui";
 import { formatDate, initials } from "@/lib/format";
@@ -91,10 +91,22 @@ export default async function SettingsPage() {
                 ) : null}
                 <span className="hidden text-[11px] text-slate-400 sm:block">منذ {formatDate(member.created_at.slice(0, 10))}</span>
                 {member.id !== user.id ? (
-                  <form action={toggleStaff}>
-                    <input type="hidden" name="id" value={member.id} />
-                    <button className="text-xs font-semibold text-slate-500 hover:text-brand-700">{member.active ? "إيقاف" : "تفعيل"}</button>
-                  </form>
+                  <div className="flex items-center gap-3">
+                    <details className="relative">
+                      <summary className="cursor-pointer list-none text-xs font-semibold text-brand-700 hover:text-brand-800">تعديل</summary>
+                      <div className="absolute end-0 z-30 mt-2 w-80 rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
+                        <StaffEditForm member={{ id: member.id, name: member.name, email: member.email, role: member.role, specialty: member.specialty ?? "" }} />
+                      </div>
+                    </details>
+                    <form action={toggleStaff}>
+                      <input type="hidden" name="id" value={member.id} />
+                      <button className="text-xs font-semibold text-slate-500 hover:text-brand-700">{member.active ? "إيقاف" : "تفعيل"}</button>
+                    </form>
+                    <form action={deleteStaff}>
+                      <input type="hidden" name="id" value={member.id} />
+                      <button className="text-xs font-semibold text-rose-600 hover:text-rose-800" aria-label={`حذف ${member.name}`}>حذف</button>
+                    </form>
+                  </div>
                 ) : null}
               </li>
             ))}

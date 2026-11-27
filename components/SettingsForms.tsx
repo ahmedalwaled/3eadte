@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addStaff, updateClinic } from "@/lib/actions/settings";
+import { addStaff, updateStaff, updateClinic } from "@/lib/actions/settings";
 import type { ActionResult } from "@/lib/actions/appointments";
 import { CURRENCY_OPTIONS } from "@/lib/format";
 
@@ -48,6 +48,43 @@ export function ClinicForm({ clinic }: { clinic: { name: string; phone: string; 
       {state?.ok ? <p className="text-sm font-medium text-emerald-600">تم الحفظ.</p> : null}
       <button type="submit" className="btn-primary" disabled={pending}>
         {pending ? "جارٍ الحفظ..." : "حفظ بيانات العيادة"}
+      </button>
+    </form>
+  );
+}
+
+export function StaffEditForm({ member }: { member: { id: string; name: string; email: string; role: string; specialty: string } }) {
+  const [state, action, pending] = useActionState<ActionResult | null, FormData>(updateStaff, null);
+
+  return (
+    <form action={action} className="space-y-3">
+      <input type="hidden" name="id" value={member.id} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="label" htmlFor={`name-${member.id}`}>
+            الاسم
+          </label>
+          <input id={`name-${member.id}`} name="name" required defaultValue={member.name} className="input" />
+        </div>
+        {member.role === "doctor" ? (
+          <div>
+            <label className="label" htmlFor={`specialty-${member.id}`}>
+              التخصص
+            </label>
+            <input id={`specialty-${member.id}`} name="specialty" defaultValue={member.specialty} className="input" placeholder="طب الأسرة، أطفال..." />
+          </div>
+        ) : null}
+        <div className="sm:col-span-2">
+          <label className="label" htmlFor={`password-${member.id}`}>
+            كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)
+          </label>
+          <input id={`password-${member.id}`} name="password" type="password" minLength={6} className="input" dir="ltr" placeholder="6 أحرف على الأقل" />
+        </div>
+      </div>
+      {state?.error ? <p className="text-sm font-medium text-rose-600">{state.error}</p> : null}
+      {state?.ok ? <p className="text-sm font-medium text-emerald-600">تم حفظ التعديلات.</p> : null}
+      <button type="submit" className="btn-primary" disabled={pending}>
+        {pending ? "جارٍ الحفظ..." : "حفظ التعديلات"}
       </button>
     </form>
   );
