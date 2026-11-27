@@ -18,9 +18,9 @@ export function StatCard({
 }) {
   const tones: Record<string, string> = {
     brand: "from-brand-50 to-white text-brand-800",
-    amber: "from-amber-50 to-white text-amber-700",
-    sky: "from-sky-50 to-white text-sky-700",
-    rose: "from-rose-50 to-white text-rose-700",
+    amber: "from-amber-50 to-white text-amber-800",
+    sky: "from-sky-50 to-white text-sky-800",
+    rose: "from-rose-50 to-white text-rose-800",
   };
   return (
     <div className={`card bg-gradient-to-bl p-4 ${tones[accent]}`}>

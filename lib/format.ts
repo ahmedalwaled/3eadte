@@ -1,10 +1,10 @@
 export const APPOINTMENT_STATUS: Record<string, { label: string; tone: string }> = {
-  booked: { label: "محجوز", tone: "bg-sky-50 text-sky-700 ring-sky-200" },
-  arrived: { label: "حضر", tone: "bg-teal-50 text-teal-700 ring-teal-200" },
-  waiting: { label: "في الانتظار", tone: "bg-amber-50 text-amber-700 ring-amber-200" },
-  in_visit: { label: "داخل المعاينة", tone: "bg-indigo-50 text-indigo-700 ring-indigo-200" },
-  done: { label: "انتهت", tone: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
-  no_show: { label: "لم يحضر", tone: "bg-rose-50 text-rose-700 ring-rose-200" },
+  booked: { label: "محجوز", tone: "bg-sky-50 text-sky-800 ring-sky-200" },
+  arrived: { label: "حضر", tone: "bg-teal-50 text-teal-800 ring-teal-200" },
+  waiting: { label: "في الانتظار", tone: "bg-amber-50 text-amber-800 ring-amber-200" },
+  in_visit: { label: "داخل المعاينة", tone: "bg-indigo-50 text-indigo-800 ring-indigo-200" },
+  done: { label: "انتهت", tone: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
+  no_show: { label: "لم يحضر", tone: "bg-rose-50 text-rose-800 ring-rose-200" },
   cancelled: { label: "ملغي", tone: "bg-slate-100 text-slate-600 ring-slate-200" },
 };
 

@@ -80,7 +80,7 @@ export default async function DashboardPage() {
                   <li key={appt.id} className="flex flex-wrap items-center gap-3 py-3">
                     <div className="grid w-14 shrink-0 place-items-center rounded-xl bg-slate-50 py-1.5">
                       <span className="text-sm font-bold text-slate-800">{timeOf(appt.starts_at)}</span>
-                      <span className="text-[10px] text-slate-400">{appt.duration} د</span>
+                      <span className="text-[10px] text-slate-500">{appt.duration} د</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <Link href={`/patients/${appt.patient_id}`} className="block truncate text-sm font-bold text-slate-800 hover:text-brand-700">

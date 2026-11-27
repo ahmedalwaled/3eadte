@@ -3,6 +3,8 @@ import LoginForm from "@/components/LoginForm";
 import { getCurrentUser } from "@/lib/auth";
 import { ensureSeed } from "@/lib/seed";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   await ensureSeed();
   const user = await getCurrentUser();

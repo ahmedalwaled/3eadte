@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/auth";
 import { unreadCount } from "@/lib/queries";
 import { ensureSeed } from "@/lib/seed";
 
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   await ensureSeed();
   const user = await requireUser();

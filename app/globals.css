@@ -11,8 +11,9 @@
   --color-brand-800: #115e59;
   --color-ink: #0f172a;
   /* Muted greys tuned so 11-12px labels still clear WCAG AA on white and slate-50 */
-  --color-slate-400: #64748b;
-  --color-slate-500: #52627a;
+  --color-slate-400: #3d4c63;
+  --color-slate-500: #39465c;
+  --color-slate-600: #34405a;
   --color-rose-600: #b91c1c;
 }
 

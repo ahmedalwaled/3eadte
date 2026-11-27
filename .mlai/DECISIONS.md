@@ -1,5 +1,9 @@
 # Decisions
 
+## Dev script uses webpack, not Turbopack (2026-11-27)
+- `package.json`: `"dev": "next dev --webpack"`.
+- Reason: on Next 16.4.6, Turbopack dev mode breaks server actions (POST to a server action returns 500 with `TypeError: Cannot read properties of undefined (reading 'apply')`, action receives empty FormData) while the same code works in `next start` production. Verify server-action bugs against `npm run build && npm start` before blaming app code.
+
 ## Patient notifications: in-app only for now (2026-11-26)
 - Current scope: internal notifications only (`notifications` table, `/notifications` page).
 - WhatsApp notifications are deferred to a future phase, not dropped.
