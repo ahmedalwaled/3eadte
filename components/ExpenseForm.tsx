@@ -6,7 +6,7 @@ import type { ActionResult } from "@/lib/actions/appointments";
 import { todayISO, type ClinicCurrency } from "@/lib/format";
 import AmountCurrencyFields from "@/components/AmountCurrencyFields";
 
-export default function ExpenseForm({ baseCurrency = "SAR", currencies = [] }: { baseCurrency?: string; currencies?: ClinicCurrency[] }) {
+export default function ExpenseForm({ baseCurrency = "SYP", currencies = [] }: { baseCurrency?: string; currencies?: ClinicCurrency[] }) {
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(addExpense, null);
 
   return (

@@ -12,7 +12,7 @@ export default function PaymentForm({
   patients,
   suggested,
   backTo,
-  baseCurrency = "SAR",
+  baseCurrency = "SYP",
   currencies = [],
 }: {
   patientId?: string;

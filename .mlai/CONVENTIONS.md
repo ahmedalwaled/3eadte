@@ -12,3 +12,8 @@
 ## Permission checks go in three places
 - A new section must be gated in the nav (`components/AppShell.tsx`), in the page (`requirePerm(user, perm)` from `lib/auth.ts`), and in any API route that returns its data.
 - The dashboard hides the cards and lists of sections the user cannot open, so it never shows numbers that the section page would refuse.
+
+## Every Arabic text search folds letters first (2026-11-27)
+- `lib/arabic.ts` owns `normalizeArabic()`: أ/إ/آ/ٱ → ا, ة → ه, ى → ي, ؤ → و, ئ → ي, diacritics and tatweel removed.
+- SQL must fold the column with `arabicNormSql(column)` and the term with `normalizeArabic()`; never compare a raw column with ILIKE on Arabic text, or "احمد" will miss "أحمد".
+- UI highlighting uses `foldWithMap()` so the `<mark>` still lands on the original letters when the query has no hamza.

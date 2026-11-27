@@ -87,16 +87,16 @@ const EXPENSE_SQL =
   "INSERT INTO expenses (id, clinic_id, title, amount, category, spent_at, created_by, created_at) VALUES (?,?,?,?,?,?,?,?)";
 
 const PEOPLE: [string, string, string, string, string][] = [
-  ["أحمد محمد الزهراني", "0551234567", "male", "1988-04-12", "الرياض"],
-  ["نورة عبدالله القحطاني", "0552345678", "female", "1995-09-03", "الرياض"],
-  ["سعد فهد الدوسري", "0553456789", "male", "1976-01-25", "الرياض"],
-  ["هند سامي الغامدي", "0554567890", "female", "2001-06-18", "الرياض"],
-  ["عبدالرحمن علي الشهري", "0555678901", "male", "1969-11-30", "الرياض"],
-  ["لمى ناصر الحربي", "0556789012", "female", "2016-02-14", "الرياض"],
-  ["يوسف إبراهيم المطيري", "0557890123", "male", "1992-07-07", "الرياض"],
-  ["ريم عبدالعزيز السبيعي", "0558901234", "female", "1983-12-21", "الرياض"],
-  ["ماجد سالم القرني", "0559012345", "male", "1959-03-09", "الرياض"],
-  ["دانة وليد الرشيد", "0550123456", "female", "1999-10-05", "الرياض"],
+  ["أحمد محمد الحلبي", "0933123456", "male", "1988-04-12", "دمشق - المزة"],
+  ["نورة عبدالله العلي", "0933234567", "female", "1995-09-03", "دمشق - المزة"],
+  ["سعد فهد الحمصي", "0933345678", "male", "1976-01-25", "حمص - الوعر"],
+  ["هند سامي الدرويش", "0933456789", "female", "2001-06-18", "حلب - الشعار"],
+  ["عبدالرحمن علي القاسم", "0933567890", "male", "1969-11-30", "دمشق - البرامكة"],
+  ["لمى ناصر الأتاسي", "0933678901", "female", "2016-02-14", "حماة - الحاضر"],
+  ["يوسف إبراهيم المخلوف", "0933789012", "male", "1992-07-07", "اللاذقية - الأمريكان"],
+  ["ريم عبدالعزيز الحسيني", "0933890123", "female", "1983-12-21", "دمشق - كفرسوسة"],
+  ["ماجد سليم النعيمي", "0933901234", "male", "1959-03-09", "دير الزور - الجورة"],
+  ["دانة وليد الخوري", "0933012345", "female", "1999-10-05", "طرطوس - المشروع"],
 ];
 
 let seeding: Promise<void> | null = null;
@@ -122,13 +122,13 @@ async function seed() {
   const secretaryA = newId();
 
   await tx(async ({ run }) => {
-    await run(CLINIC_SQL, [clinicA, "عيادة النور الطبية", "0112345678", "الرياض - حي الملقا", "SAR", created]);
-    await run(CLINIC_SQL, [clinicB, "مركز الشفاء التخصصي", "0119876543", "جدة - حي الروضة", "SAR", created]);
+    await run(CLINIC_SQL, [clinicA, "عيادة النور الطبية", "0112345678", "دمشق - المزة", "SYP", created]);
+    await run(CLINIC_SQL, [clinicB, "مركز الشفاء التخصصي", "0419876543", "حلب - الجميلية", "SYP", created]);
 
     await run(USER_SQL, [newId(), null, "مدير المنصة", "admin@platform.demo", hashPassword("admin123"), "platform_admin", "", created]);
-    await run(USER_SQL, [doctorA, clinicA, "د. سارة العتيبي", "doctor@clinic.demo", hashPassword("doctor123"), "doctor", "طب الأسرة", created]);
-    await run(USER_SQL, [secretaryA, clinicA, "منى الحربي", "secretary@clinic.demo", hashPassword("secret123"), "secretary", "", created]);
-    await run(USER_SQL, [newId(), clinicB, "د. خالد الشمري", "doctor@shifa.demo", hashPassword("doctor123"), "doctor", "طب الأطفال", created]);
+    await run(USER_SQL, [doctorA, clinicA, "د. سارة الحلواني", "doctor@clinic.demo", hashPassword("doctor123"), "doctor", "طب الأسرة", created]);
+    await run(USER_SQL, [secretaryA, clinicA, "منى الأتاسي", "secretary@clinic.demo", hashPassword("secret123"), "secretary", "", created]);
+    await run(USER_SQL, [newId(), clinicB, "د. خالد بارودي", "doctor@shifa.demo", hashPassword("doctor123"), "doctor", "طب الأطفال", created]);
 
     const patientIds: string[] = [];
     for (const [index, person] of PEOPLE.entries()) {
@@ -256,6 +256,6 @@ async function seed() {
     }
 
     await run(NOTIFICATION_SQL, [newId(), clinicA, null, "موعد جديد", "تم حجز موعد لمريض جديد اليوم الساعة 16:00", "appointment", created]);
-    await run(NOTIFICATION_SQL, [newId(), clinicA, null, "مريض لم يحضر", "لم يحضر المريض ماجد سالم القرني لموعده أمس", "warning", created]);
+    await run(NOTIFICATION_SQL, [newId(), clinicA, null, "مريض لم يحضر", "لم يحضر المريض ماجد سليم النعيمي لموعده أمس", "warning", created]);
   });
 }

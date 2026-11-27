@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS clinics (
   name TEXT NOT NULL,
   phone TEXT DEFAULT '',
   address TEXT DEFAULT '',
-  currency TEXT NOT NULL DEFAULT 'SAR',
+  currency TEXT NOT NULL DEFAULT 'SYP',
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL
 );
@@ -218,7 +218,7 @@ function ensureSchema(): Promise<void> {
       // Rows written before multi-currency support were in the clinic's base currency.
       for (const table of ["payments", "expenses"]) {
         await sql.unsafe(
-          `UPDATE ${table} SET currency = COALESCE((SELECT currency FROM clinics WHERE clinics.id = ${table}.clinic_id), 'SAR') WHERE currency = ''`,
+          `UPDATE ${table} SET currency = COALESCE((SELECT currency FROM clinics WHERE clinics.id = ${table}.clinic_id), 'SYP') WHERE currency = ''`,
         );
       }
     })().catch((error) => {

@@ -67,6 +67,7 @@ export function dateOf(startsAt: string): string {
 }
 
 const CURRENCIES: Record<string, string> = {
+  SYP: "ل.س",
   SAR: "ر.س",
   AED: "د.إ",
   EGP: "ج.م",
@@ -88,6 +89,7 @@ const CURRENCIES: Record<string, string> = {
 
 /** Currencies a clinic can choose as its base currency, or add as a secondary one. */
 export const CURRENCY_OPTIONS: { code: string; label: string }[] = [
+  { code: "SYP", label: "ليرة سورية" },
   { code: "SAR", label: "ريال سعودي" },
   { code: "AED", label: "درهم إماراتي" },
   { code: "QAR", label: "ريال قطري" },
@@ -119,7 +121,7 @@ export function currencySymbol(code: string): string {
   return CURRENCIES[code] ?? code;
 }
 
-export function money(amount: number, currency = "SAR"): string {
+export function money(amount: number, currency = "SYP"): string {
   const value = Number(amount || 0);
   const formatted = value.toLocaleString("en-US", { minimumFractionDigits: value % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 });
   return `${formatted} ${CURRENCIES[currency] ?? currency}`;

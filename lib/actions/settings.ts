@@ -12,7 +12,7 @@ export async function updateClinic(_prev: ActionResult | null, formData: FormDat
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
-  const currency = String(formData.get("currency") ?? "SAR").trim().toUpperCase().slice(0, 3);
+  const currency = String(formData.get("currency") ?? "SYP").trim().toUpperCase().slice(0, 3);
   if (name.length < 2) return { error: "أدخل اسم العيادة" };
 
   await run("UPDATE clinics SET name = ?, phone = ?, address = ?, currency = ? WHERE id = ?", [name, phone, address, currency, user.clinicId]);

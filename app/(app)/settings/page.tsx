@@ -34,7 +34,7 @@ export default async function SettingsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card card-pad">
           <h2 className="section-title mb-3">بيانات العيادة</h2>
-          <ClinicForm clinic={clinic ?? { name: "", phone: "", address: "", currency: "SAR" }} />
+          <ClinicForm clinic={clinic ?? { name: "", phone: "", address: "", currency: "SYP" }} />
         </section>
 
         <section className="card card-pad">

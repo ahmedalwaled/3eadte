@@ -26,8 +26,8 @@ export default function ClinicForm() {
           <label className="label" htmlFor="nc-currency">
             العملة
           </label>
-          <select id="nc-currency" name="currency" className="input" defaultValue="SAR">
-            <option value="SAR">ريال سعودي</option>
+          <select id="nc-currency" name="currency" className="input" defaultValue="SYP">
+            <option value="SYP">ليرة سورية</option>
             <option value="AED">درهم إماراتي</option>
             <option value="QAR">ريال قطري</option>
             <option value="KWD">دينار كويتي</option>

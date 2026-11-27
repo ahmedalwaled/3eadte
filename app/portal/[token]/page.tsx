@@ -22,7 +22,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
     "SELECT name, phone, address, currency FROM clinics WHERE id = ?",
     [patient.clinic_id],
   );
-  const currency = clinic?.currency ?? "SAR";
+  const currency = clinic?.currency ?? "SYP";
 
   const store = await cookies();
   const expected = portalCookieValue(patient.id, token);

@@ -117,7 +117,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     role: row.role as Role,
     clinicId: row.clinic_id ?? null,
     clinicName: row.clinic_name ?? null,
-    currency: row.currency ?? "SAR",
+    currency: row.currency ?? "SYP",
     specialty: row.specialty ?? "",
     deniedPerms: String(row.denied_perms ?? "").split(",").filter(Boolean),
   };

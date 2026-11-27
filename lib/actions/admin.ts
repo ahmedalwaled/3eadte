@@ -10,7 +10,7 @@ export async function createClinic(_prev: ActionResult | null, formData: FormDat
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
-  const currency = String(formData.get("currency") ?? "SAR").trim().toUpperCase().slice(0, 3);
+  const currency = String(formData.get("currency") ?? "SYP").trim().toUpperCase().slice(0, 3);
   const doctorName = String(formData.get("doctorName") ?? "").trim();
   const doctorEmail = String(formData.get("doctorEmail") ?? "").trim().toLowerCase();
   const doctorPassword = String(formData.get("doctorPassword") ?? "");
