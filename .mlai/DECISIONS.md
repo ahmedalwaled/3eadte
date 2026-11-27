@@ -20,3 +20,14 @@
 ## Arabic PDFs via pdfkit, font shipped in repo (2026-11-27)
 - `lib/pdf.ts` uses pdfkit with `assets/fonts/NotoNaskhArabic.ttf` (committed), included in the Netlify bundle via `outputFileTracingIncludes` in `next.config.ts` — verified working on the live site (deploy `4cab1ee`).
 - Verified end to end on https://3eadte.netlify.app: prescription, receipt and statement PDFs return 200 `application/pdf` with correct Arabic content.
+
+## Secretary permissions are per site section (2026-11-27)
+- `lib/auth.ts` owns the list: `PERMS` = appointments, patients, finance, reports, uploads. The doctor toggles them from `/settings`; they are stored in `users.denied_perms` (comma-separated denials).
+- One permission hides three things together: the sidebar item, the pages behind it (via `requirePerm`), and the matching dashboard sections/cards. Global search also skips the branches the user may not see.
+- Default for a new secretary is everything granted, so behaviour only changes when the doctor revokes something.
+
+## Global search is one UNION round-trip (2026-11-27)
+- `globalSearch()` in `lib/queries.ts` builds one `UNION ALL` statement (one branch per table, each `LIMIT`ed) so latency stays flat instead of one round-trip per table.
+- `GET /api/search?q=` returns JSON and the dashboard's `GlobalSearch` client component debounces 150 ms.
+- `pg_trgm` GIN indexes are created best-effort in `lib/db.ts`; when the role cannot install the extension, search still works with a plain scan.
+- Measured: 2–3 ms of query time locally; ~0.65 s end to end on the live Netlify site (Lambda + cross-region pooler dominate).

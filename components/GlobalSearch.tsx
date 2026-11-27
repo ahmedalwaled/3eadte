@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SearchIcon } from "@/components/icons";
 
@@ -27,11 +28,15 @@ const KIND_STYLE: Record<string, string> = {
 };
 
 export default function GlobalSearch() {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
   const [ms, setMs] = useState(0);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const activeRef = useRef(-1);
+  const hitsRef = useRef<Hit[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
 
@@ -39,7 +44,10 @@ export default function GlobalSearch() {
     const term = q.trim();
     if (!term) {
       abortRef.current?.abort();
+      hitsRef.current = [];
+      activeRef.current = -1;
       setHits([]);
+      setActive(-1);
       setOpen(false);
       setLoading(false);
       return;
@@ -52,11 +60,18 @@ export default function GlobalSearch() {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(term)}`, { signal: controller.signal });
         const data = (await res.json()) as { hits?: Hit[]; ms?: number };
-        setHits(data.hits ?? []);
+        const list = data.hits ?? [];
+        hitsRef.current = list;
+        setHits(list);
         setMs(data.ms ?? 0);
+        activeRef.current = -1;
+        setActive(-1);
         setOpen(true);
       } catch (error) {
-        if ((error as Error).name !== "AbortError") setHits([]);
+        if ((error as Error).name !== "AbortError") {
+          hitsRef.current = [];
+          setHits([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -81,7 +96,25 @@ export default function GlobalSearch() {
           onChange={(event) => setQ(event.target.value)}
           onFocus={() => hits.length > 0 && setOpen(true)}
           onKeyDown={(event) => {
-            if (event.key === "Escape") setOpen(false);
+            const list = hitsRef.current;
+            if (event.key === "Escape") {
+              setOpen(false);
+              activeRef.current = -1;
+              setActive(-1);
+            } else if (event.key === "ArrowDown" && list.length > 0) {
+              event.preventDefault();
+              setOpen(true);
+              activeRef.current = (activeRef.current + 1) % list.length;
+              setActive(activeRef.current);
+            } else if (event.key === "ArrowUp" && list.length > 0) {
+              event.preventDefault();
+              activeRef.current = activeRef.current <= 0 ? list.length - 1 : activeRef.current - 1;
+              setActive(activeRef.current);
+            } else if (event.key === "Enter" && activeRef.current >= 0 && list[activeRef.current]) {
+              event.preventDefault();
+              setOpen(false);
+              router.push(list[activeRef.current].href);
+            }
           }}
           placeholder="ابحث في كل شيء: مريض، دواء، موعد، زيارة، مصروف، ملف…"
           aria-label="بحث شامل"
@@ -101,12 +134,14 @@ export default function GlobalSearch() {
             <p className="px-2 py-3 text-xs text-slate-600">جرّب جزءاً من الاسم أو رقم الجوال أو الدواء.</p>
           ) : (
             <ul>
-              {hits.map((hit) => (
+              {hits.map((hit, index) => (
                 <li key={`${hit.kind}-${hit.id}`}>
                   <Link
                     href={hit.href}
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-slate-50"
+                    className={`flex items-center gap-2 rounded-lg px-2 py-2 ${
+                      index === active ? "bg-slate-100" : "hover:bg-slate-50"
+                    }`}
                   >
                     <span
                       className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
@@ -124,6 +159,9 @@ export default function GlobalSearch() {
               ))}
             </ul>
           )}
+          <p className="mt-1 border-t border-slate-100 px-2 pt-1.5 text-[10px] text-slate-600">
+            ↑↓ للتنقل · Enter للفتح · Esc للإغلاق
+          </p>
         </div>
       ) : null}
     </div>
